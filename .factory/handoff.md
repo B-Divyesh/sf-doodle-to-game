@@ -1,48 +1,49 @@
-# Doodle to Game — repair handoff
+# Doodle to Game — verification handoff
 
-- Work order: `doodle-to-game-repair-1`
-- Repair base: `d2f64b8ce4add771cee46e2a34fdfa6b97921ffb`
-- Product-code commit deployed: `06d9e5d` (`fix: repair release QA blockers`)
+- Work order: `doodle-to-game-verify-3`
+- Candidate tested: `0ca9bb76da0740ad160218d64e8578f052136050`
+- Branch: `main`
 - Live URL: <https://doodle-to-game.sociobot.in>
-- Deployed: 2026-08-28 UTC, Azure Static Web Apps deployment `440ab137-a1cc-464a-9456-334a3a4f7d17`
+- Verified: 2026-08-28 UTC
+- Result: **FAIL**
 
-## What was repaired
+## Outcome
 
-- The public build now defaults to `https://api.sociobot.in/api/v1`, not the pilot host. The live Buy Workshop Pack link is now `https://api.sociobot.in/api/v1/products/doodle-to-game/checkout`; pilot remains an explicit local-staging override only.
-- Dark-mode paid-strip and footer tokens now use the dark night panel with high-contrast ink/link colours. Axe serious/critical findings are zero in both light and dark/reduced-motion browser tests.
-- Template cards are now a roving-focus radio group: Arrow keys wrap/select, Home/End choose first/last, and a selection rerender restores focus to the chosen card.
-- All footer links are 44 px high at the 390 px layout.
-- Added checked-in `public/staticwebapp.config.json`, deployed with the app: hashed `/assets/*` and `/icons/*` are one-year immutable; documents, manifest, and `sw.js` revalidate; manifest MIME is `application/manifest+json`; CSP, Permissions Policy, anti-framing, COOP/CORP, HSTS, referrer, and nosniff policies are set.
-- Malformed JSON import now says the project is incomplete and tells the maker to export again or choose another Doodle to Game JSON file.
-- Manifest start URL version advanced to `v=2`, preserving the PWA update path.
+Independent verification is recorded in [`.factory/verification-3.md`](verification-3.md). The run started clean; `HEAD` and `origin/main` matched the candidate. The exact local production build is byte-identical to the live deployment.
 
-## Regression coverage and verification
+The release fails for two high-severity reasons:
 
-Clean install and repository gates run from this checkout:
+1. Production checkout returns HTTP 404 with `{"error":"enabled factory product","status":404}`, so the advertised US $9 Workshop Pack cannot be purchased.
+2. Selecting another ink colour after drawing silently rerenders the editor and deletes all unsaved pixels (4,317 → 0 in the live reproduction).
+
+Additional defects are an offline arbitrary-token paid unlock, a serious 1.84:1 dark-mode save-status contrast failure, invisible keyboard focus on both file inputs, two undersized mobile touch targets, and stale legal-page title metadata on one offline-root sequence.
+
+## What passed
+
+- `npm ci`: 57 packages; `npm audit --audit-level=low`: 0 vulnerabilities.
+- `npm test`: 8 unit tests and the strict production build passed; Playwright finished 14 passed with 2 intentional project skips.
+- Build output: 35.59 KB JS, 20.45 KB CSS, 27.61 KB mobile hero, no fonts.
+- Live/local desktop and 390 px flows: two local art slots, photo input/background cleanup, undo, tune, play/reset, all three templates, 21-move maze completion, import/export, persistence, invalid-input recovery, and legal routes.
+- Ordinary use made no third-party request or artwork upload. No normal-flow console/page errors occurred.
+- PWA manifest and service-worker activation, offline routes/reload, and a synthetic update/toast/cache replacement passed.
+- Live caching, MIME, CSP, permissions, anti-framing, isolation, HSTS, referrer, and `nosniff` headers passed.
+- Lighthouse 13.4.1 mobile: local 99/100/100 and live 100/100/100 for performance/accessibility/best practices; live LCP 1.25 s, TBT 69 ms, CLS 0.
+
+## Reproduce
 
 ```sh
+git checkout 0ca9bb76da0740ad160218d64e8578f052136050
 npm ci
 npm audit --audit-level=low
 npm test
+npm run build
+npm run preview -- --port 4174
 ```
 
-- `npm ci`: 57 packages installed; audit: 0 vulnerabilities.
-- `npm test`: 8 unit tests passed; `tsc --noEmit` passed inside `npm run build`; Vite emitted `dist/`; 16 Playwright project tests completed (14 passed, 2 intentional desktop/mobile duplicate skips). Coverage includes all three games, local drawing/photo flow, legal routes, desktop and 390 × 844 mobile, light and dark axe checks, keyboard radio focus, 44 px footer targets, and offline reload.
-- Exact regression tests cover the production checkout base, static host caching/MIME/security config, incomplete JSON copy, dark axe, roving keyboard selection/focus, and mobile target dimensions.
-- There is no standalone lint configuration in this Vite/TypeScript project; strict TypeScript checking is run by the production build.
-- Local Lighthouse 13.4.1 desktop: Performance 100, Accessibility 100, Best Practices 100; FCP 0.2 s, LCP 0.3 s, CLS 0. Initial output is 35.59 KB JS and 20.45 KB CSS uncompressed.
+For H-2, open Add art, draw without saving, and select another ink swatch; the canvas clears. For H-1, request `https://api.sociobot.in/api/v1/products/doodle-to-game/checkout` and observe the 404 response.
 
-Live post-deploy evidence:
+## Next steps
 
-- `dist/index.html` and live `/` SHA-256: `23f1d4c214fa29f3d45b547a72699f18471a843935fc21b09e944df72fc75045`.
-- `dist/assets/main-BGmlB9Lr.js` and the live asset SHA-256: `07a49cd2a3e9ca74ca0e420f6309ba17fa3ac4a34ff587bb35fcbb252620dfeb`.
-- Live root and `sw.js`: `Cache-Control: public, max-age=0, must-revalidate`; live hashed JS: `public, max-age=31536000, immutable`; live manifest: `Content-Type: application/manifest+json` and revalidation caching.
-- Live headers include CSP with first-party-only/script/frame protections, `Permissions-Policy`, `X-Frame-Options: DENY`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`, and two-year preload HSTS.
-- Live desktop dark and 390 px mobile browser smoke checks both found one `h1`, one `main`, no console errors, the production checkout URL, three 44 px footer links, and a service-worker-controlled offline reload. Live keyboard ArrowRight moves focus and selection from Dodge to Collect without dropping focus to `body`.
-- No product artwork leaves the device in the tested drawing/play paths. The built bundle contains the production Sociobot API base and no pilot endpoint; the CSP permits only same-origin requests plus that billing API.
+Repair H-2 and the local accessibility/licensing findings in product code. Billing registration is intentionally outside this repository: enable the production product and return URL, then run a real purchase/return/restore/revocation test. Rerun the full verification contract before promotion.
 
-## Known external release blocker
-
-The app-side H-1 routing defect is fixed, but the production Sociobot product itself is still not registered/enabled: a fresh request to `https://api.sociobot.in/api/v1/products/doodle-to-game/checkout` on 2026-08-28 returns HTTP 404 with `{"error":"enabled factory product","status":404}`. Therefore a real checkout, return-token, and paid restore smoke test cannot complete yet.
-
-The repository contract explicitly keeps billing registration outside this repo. Factory billing must register/enable `doodle-to-game` at US $9 with return URL `https://doodle-to-game.sociobot.in/`; then rerun checkout, return-token stripping, daily verification, offline cached unlock, and restore-purchase smoke tests. No other product behavior was removed or gated by this repair.
+No product code was changed by this verification work.
