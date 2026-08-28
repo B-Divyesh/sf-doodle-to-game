@@ -45,7 +45,7 @@ Body text and controls meet WCAG AA (4.5:1); large decorative geometry is never 
 
 The app is a four-stop workshop strip: **Choose → Draw → Tune → Play**. Only one stop is expanded at a time, while completed choices remain visible as compact “paper tabs.” A bright tomato portal marks the next action. Selection produces a physical two-pixel press. Undo is persistent wherever pixels or project state can change.
 
-Keyboard: tab/enter operate every control; arrows/WASD operate games; Escape leaves play. Touch uses an on-screen D-pad, and pointer drawing distinguishes pen/mouse from touch so a palm does not paint when a pen is present.
+Keyboard: Tab and Enter operate every control; arrow keys or W, A, S, and D operate games. Escape leaves play. Touch uses an on-screen direction pad, and pointer drawing distinguishes pen or mouse from touch so a palm does not paint when a pen is present.
 
 ## Motion
 

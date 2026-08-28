@@ -1,1 +1,1 @@
-Turn two drawings into a tiny game with a child.
+Turn two drawings into a playable game with a child.

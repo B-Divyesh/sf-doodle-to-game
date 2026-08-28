@@ -31,6 +31,11 @@ describe('static release response policy', () => {
     expect(serviceWorkerBuilder).not.toContain("cache.put('/index.html', copy)");
   });
 
+  it('does not precache the deployment-only Azure configuration', () => {
+    expect(serviceWorkerBuilder).toContain("entry.name === 'staticwebapp.config.json'");
+    expect(serviceWorkerBuilder).not.toContain("const shell = ['/staticwebapp.config.json'");
+  });
+
   it('rewrites each product route and serves unknown paths as the designed 404', () => {
     expect(config.routes.find((route) => route.route === '/demo')?.rewrite).toBe('/index.html');
     expect(config.routes.find((route) => route.route === '/privacy')?.rewrite).toBe('/privacy/index.html');

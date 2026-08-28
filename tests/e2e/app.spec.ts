@@ -95,6 +95,20 @@ test('has no serious dark-mode accessibility violations', async ({ page }) => {
   expect(violations).toEqual([]);
 });
 
+test('demo banner and controls pass accessibility checks in light and dark modes', async ({ page }) => {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await page.goto('/demo');
+    await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+    const violations = await page.evaluate(async () => {
+      const axe = (window as unknown as { axe: { run: (options: { runOnly: string[] }) => Promise<{ violations: Array<{ impact: string | null; id: string }> }> } }).axe;
+      const results = await axe.run({ runOnly: ['wcag2a', 'wcag2aa'] });
+      return results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''));
+    });
+    expect(violations, `${colorScheme} demo violations`).toEqual([]);
+  }
+});
+
 test('changing ink preserves every unsaved canvas pixel and undo history', async ({ page }) => {
   await page.goto('/');
   await page.locator('[data-next="draw"]').click();
@@ -169,16 +183,19 @@ test('template radio cards keep roving focus with keyboard selection', async ({ 
   await expect(dodge).toBeFocused();
 });
 
-test('mobile footer links have 44px touch targets', async ({ page }, testInfo) => {
+test('mobile header, footer, and drawing controls have 44px touch targets', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'Touch target dimensions apply at the 390px layout.');
-  await page.goto('/');
-  const sizes = await page.locator('footer a').evaluateAll((links) => links.map((link) => {
-    const rect = link.getBoundingClientRect();
-    return { width: Math.round(rect.width), height: Math.round(rect.height) };
-  }));
-  expect(sizes).toHaveLength(2);
-  expect(sizes.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
+  for (const route of ['/', '/demo', '/privacy', '/terms', '/404.html']) {
+    await page.goto(route);
+    const sizes = await page.locator('.site-header nav a, footer a').evaluateAll((links) => links.map((link) => {
+      const rect = link.getBoundingClientRect();
+      return { width: Math.round(rect.width), height: Math.round(rect.height), text: link.textContent };
+    }));
+    expect(sizes.length).toBeGreaterThanOrEqual(5);
+    expect(sizes.every(({ width, height }) => width >= 44 && height >= 44), `${route}: ${JSON.stringify(sizes)}`).toBe(true);
+  }
 
+  await page.goto('/');
   await page.locator('[data-next="draw"]').click();
   const brush = await page.locator('#brush-size').boundingBox();
   expect(brush?.width).toBeGreaterThanOrEqual(44);
@@ -209,6 +226,21 @@ test('routes set metadata, announce their heading, and show a styled missing-pag
   await expect(page).toHaveTitle('Page not found — Doodle to Game');
   await expect(page.getByRole('heading', { name: 'This game board is blank' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Go to the game maker' })).toBeVisible();
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', 'This Doodle to Game page does not exist.');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Page not found — Doodle to Game');
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+  await expect(page.locator('link[rel="icon"]')).toHaveCount(1);
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
+  await expect(page.locator('.site-header')).toBeVisible();
+  await expect(page.locator('footer')).toContainText('Built by Param Factory');
+  await page.goto('/404.html');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
+  for (const route of ['/privacy/', '/terms/']) {
+    await page.goto(route);
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
+  }
 });
 
 test('all three fixed game templates start', async ({ page }) => {

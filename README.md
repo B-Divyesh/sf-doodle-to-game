@@ -11,7 +11,7 @@ playable sample at <https://doodle-to-game.sociobot.in/demo>.
 - Keeps demo work separate from personal work.
 - Saves game settings in this browser.
 - Exports and imports a project file.
-- Accepts arrows, WASD, and the touch pad during play.
+- Accepts arrow keys, the W, A, S, and D keys, and the touch pad.
 - Works after the first visit.
 
 No account or upload is needed for the game maker. The optional Workshop Pack
@@ -56,7 +56,7 @@ the application routes and supplies the standalone 404 document.
 ## Project notes
 
 - `src/main.ts` contains the workshop, routes, demo banner, and controls.
-- `src/state.ts` contains local project storage and the demo namespace.
+- `src/state.ts` keeps personal projects and disposable demo projects separate.
 - `src/game.ts` contains the three canvas game rules.
 - `scripts/build-sw.mjs` creates the offline service worker.
 - `.factory/demo.md` explains the sample sandbox.
