@@ -72,6 +72,7 @@ Keyboard: tab/enter operate every control; arrows/WASD operate games; Escape lea
 - **Tool/model:** `/opt/fleet/lib/gen-image.sh`, deployment `factory-image` (Azure AI Foundry image model)
 - **Generation date:** 2026-08-28
 - **License/provenance:** original generated image for this product; prompt above. Source PNG and prompt sidecar retained in `assets/src/`; optimized WebP ships in `public/assets/`.
+- **Social crop:** `public/assets/social-1200x630.jpg` is a 1200 × 630 crop of the approved hero, made locally with ImageMagick on 2026-08-28. It carries no new imagery or text.
 
 ## Responsive intent
 

@@ -1,7 +1,7 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/icons/*", "/sw.js", "/manifest.webmanifest", "/offline.html"]
+    "exclude": ["/assets/*", "/icons/*", "/sw.js", "/manifest.webmanifest", "/offline.html", "/404.html", "/robots.txt", "/sitemap.xml"]
   },
   "globalHeaders": {
     "Cache-Control": "public, max-age=0, must-revalidate",

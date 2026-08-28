@@ -176,7 +176,7 @@ test('mobile footer links have 44px touch targets', async ({ page }, testInfo) =
     const rect = link.getBoundingClientRect();
     return { width: Math.round(rect.width), height: Math.round(rect.height) };
   }));
-  expect(sizes).toHaveLength(3);
+  expect(sizes).toHaveLength(2);
   expect(sizes.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
 
   await page.locator('[data-next="draw"]').click();
@@ -193,7 +193,7 @@ test('legal pages are reachable without losing app structure', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Private by default' })).toBeVisible();
   await expect(page.locator('h1')).toHaveCount(1);
   await page.getByRole('link', { name: /Back to the workshop/ }).click();
-  await expect(page.getByRole('heading', { name: /Their drawing/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Turn two drawings/ })).toBeVisible();
 });
 
 test('all three fixed game templates start', async ({ page }) => {
@@ -247,6 +247,6 @@ test('offline root navigation restores workshop metadata after a legal page', as
   await expect(page).toHaveTitle('Privacy — Doodle to Game');
   await context.setOffline(true);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveTitle('Doodle to Game — make their drawing playable');
-  await expect(page.getByRole('heading', { name: /Their drawing/ })).toBeVisible();
+  await expect(page).toHaveTitle('Doodle to Game — turn drawings into a game');
+  await expect(page.getByRole('heading', { name: /Turn two drawings/ })).toBeVisible();
 });

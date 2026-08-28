@@ -1,35 +1,37 @@
 # Doodle to Game
 
-Doodle to Game is a tablet-friendly, offline-first workshop that turns a child’s drawing or paper photo into a playable character. An adult and child can make a complete **dodge**, **collect**, or **top-down maze** game together without an account, asset folders, or a game engine.
+Turn two drawings into a tiny game with a child.
 
-Live product: <https://doodle-to-game.sociobot.in>
+An adult and child can make dodge, collect, or maze games together. Try the
+playable sample at <https://doodle-to-game.sociobot.in/demo>.
 
-## What it includes
+## What it does
 
-- A pen-, touch-, mouse-, and keyboard-friendly drawing pad with brush colours, eraser, clear, and undo
-- Local photo capture/import and simple high-contrast paper-background removal
-- Two personal art slots mapped directly to the hero and obstacle, treasure, or goal
-- Three fixed games with only speed, score goal, and sound controls
-- Arrow/WASD controls and an on-screen 60 px direction pad
-- IndexedDB autosave plus private JSON export/import
-- Installable app manifest, versioned service-worker shell cache, update notice, and tested offline reload
-- Direct `/privacy` and `/terms` pages
-- Optional US $9 one-time Workshop Pack license (bonus inks and finish celebration); the complete core maker remains free
+- Opens a playable sample dodge game with two built-in drawings.
+- Keeps demo work separate from personal work.
+- Saves game settings in this browser.
+- Exports and imports a project file.
+- Accepts arrows, WASD, and the touch pad during play.
+- Works after the first visit.
 
-Artwork and project data stay in the browser. There are no analytics, third-party scripts, cloud artwork storage, or accounts. The optional license check sends only the saved license token to Sociobot’s billing API.
+No account or upload is needed for the game maker. The optional Workshop Pack
+costs US $9 once. It adds four bonus ink colours.
+
+Read [Privacy](privacy/index.html) and [Terms](terms/index.html) before using
+the optional checkout.
 
 ## Run locally
 
 Requires Node.js 20 or newer.
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. Camera capture depends on browser/device support; file selection works everywhere.
+Open the local address printed by Vite. Visit `/demo` to use the sample.
 
-## Test and build
+## Verify and build
 
 ```sh
 npm test
@@ -37,33 +39,28 @@ npm run build
 npm run preview
 ```
 
-`npm test` runs unit tests, a clean production build, desktop and 390 px browser flows, axe WCAG checks, every game template, legal routes, and an explicit offline reload. The production output is exactly `dist/`, with `dist/index.html` at its root.
+`npm test` runs unit checks, a production build, and browser checks at desktop
+and mobile sizes. It also checks accessibility, routes, controls, privacy, and
+offline reloads. The build writes `dist/index.html` at the root of `dist/`.
 
-The pinned Playwright version is `1.58.2`. The factory worker image already provides its Chromium browser; elsewhere run `npx playwright install chromium` once if needed.
+Every visitor-facing promise has a tagged browser check in
+[.factory/claims.json](.factory/claims.json). Run an individual claim from a
+clean install with its listed command.
 
-## Billing environments
+## Deploy
 
-Release builds default to the production Sociobot API, so a public buy link cannot accidentally send customers to pilot. Local staging can opt into pilot explicitly:
+Run `npm run build` and publish `dist/` as a static site. The included static
+hosting configuration sets security headers and cache rules. It also preserves
+the application routes and supplies the standalone 404 document.
 
-```sh
-VITE_BILLING_API_BASE=https://pilot-api.sociobot.in/api/v1 npm run build
-```
+## Project notes
 
-The factory must register the `doodle-to-game` product and return URL before checkout is usable. No payment provider is embedded in this app.
-
-## Project structure
-
-- `src/main.ts` — workshop UI, drawing editor, routing, import/export, and install/update behavior
-- `src/game.ts` — the three fixed canvas game rules
-- `src/state.ts` — validated project format and IndexedDB persistence
-- `src/image.ts` — local paper-background cleanup
-- `src/license.ts` — Sociobot checkout, restore, daily verification, and cached offline unlock
-- `scripts/build-sw.mjs` — generates a versioned service worker from the built asset list
-- `.factory/design.md` — visual system and generated-art provenance
-
-## Deployment
-
-Run `npm run build` and publish `dist/` as a static site. The build includes `staticwebapp.config.json`, which supplies immutable caching for `/assets` and `/icons`, revalidation for documents and `sw.js`, the web-manifest MIME type, and first-party browser hardening headers. Both direct legal routes are emitted as real HTML entry points; ordinary app navigation also works client-side.
+- `src/main.ts` contains the workshop, routes, demo banner, and controls.
+- `src/state.ts` contains local project storage and the demo namespace.
+- `src/game.ts` contains the three canvas game rules.
+- `scripts/build-sw.mjs` creates the offline service worker.
+- `.factory/demo.md` explains the sample sandbox.
+- `.factory/design.md` records the visual system and art provenance.
 
 ## License
 

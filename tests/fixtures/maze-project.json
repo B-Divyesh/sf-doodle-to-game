@@ -1,0 +1,10 @@
+{
+  "format": "doodle-to-game",
+  "project": {
+    "template": "maze",
+    "speed": "zippy",
+    "score": "short",
+    "sound": true,
+    "assets": {}
+  }
+}

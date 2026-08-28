@@ -2,7 +2,7 @@ import './styles.css';
 import { TinyGame } from './game';
 import { containImage, removePaperBackground } from './image';
 import { captureReturnedLicense, checkoutUrl, hasOptimisticUnlock, storeLicense, verifyLicense } from './license';
-import { defaultProject, loadProject, projectFromJson, projectToJson, saveProject, type AssetSlot, type GameTemplate, type Project } from './state';
+import { defaultProject, loadProject, projectFromJson, projectToJson, resetDemoProject, saveProject, setDemoMode, type AssetSlot, type GameTemplate, type Project } from './state';
 
 type Step = 'choose' | 'draw' | 'tune' | 'play';
 
@@ -20,6 +20,7 @@ let editorColor = '#172033';
 let editorSize = 12;
 let erasing = false;
 let dirty = false;
+let isDemo = false;
 
 const templateCopy: Record<GameTemplate, { eyebrow: string; title: string; description: string; object: string }> = {
   dodge: { eyebrow: 'Move + survive', title: 'Doodle dodge', description: 'Steer your hero away from a shower of wobbly obstacles.', object: 'Obstacle' },
@@ -44,15 +45,33 @@ const shell = (): void => {
     <header class="site-header">
       <a class="brand" href="/" data-route="/" aria-label="Doodle to Game home">
         <svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="20" cy="26" r="13"/><path d="M31 13h12v26H31z"/><path class="brand-spark" d="m11 25 7-5 7 5-3 9h-9z"/></svg>
-        <h1>Doodle to Game</h1>
+        <span>Doodle to Game</span>
       </a>
-      <nav aria-label="Legal and product links"><a href="/privacy" data-route="/privacy">Privacy</a><a href="/terms" data-route="/terms">Terms</a></nav>
+      <nav aria-label="Product links"><a href="/demo" data-route="/demo">Demo</a><a href="/privacy" data-route="/privacy">Privacy</a><a href="/terms" data-route="/terms">Terms</a></nav>
     </header>
     <div id="connection-note" class="connection-note" role="status" hidden>You’re offline — drawing and playing still work.</div>
     <main id="main" tabindex="-1"></main>
-    <footer><p>Made for side-by-side play. Your drawings stay on this device.</p><p><a href="/privacy" data-route="/privacy">Privacy</a> · <a href="/terms" data-route="/terms">Terms</a> · Generated hero artwork disclosed in <a href="https://github.com/B-Divyesh/sf-doodle-to-game" rel="noreferrer">the project notes</a>.</p></footer>
+    <footer><p>A tiny game maker for adults and children.</p><p><a href="/privacy" data-route="/privacy">Privacy</a> · <a href="/terms" data-route="/terms">Terms</a> · Built by Param Factory · build 635d7247</p></footer>
     <div id="app-status" class="app-status" role="status" aria-live="polite"></div>
+    <div id="route-status" class="visually-hidden" aria-live="polite"></div>
     <div id="update-toast" class="toast" role="status" hidden><span>A fresh version is ready.</span><button type="button" data-action="reload">Reload</button></div>`;
+};
+
+const updateMetadata = (title: string, description: string): void => {
+  document.title = title;
+  document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute('content', description);
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', location.origin + location.pathname);
+  document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute('content', title);
+  document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute('content', description);
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')?.setAttribute('content', title);
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:description"]')?.setAttribute('content', description);
+};
+
+const focusRouteHeading = (): void => {
+  const heading = document.querySelector<HTMLElement>('#main h1');
+  heading?.focus();
+  const announcement = document.querySelector<HTMLElement>('#route-status');
+  if (announcement && heading) announcement.textContent = heading.textContent ?? '';
 };
 
 const renderRoute = (): void => {
@@ -60,51 +79,57 @@ const renderRoute = (): void => {
   const main = document.querySelector<HTMLElement>('#main');
   if (!main) return;
   const path = location.pathname.replace(/\/+$/, '') || '/';
-  if (path === '/privacy') { document.title = 'Privacy — Doodle to Game'; renderLegal(main, 'privacy'); }
-  else if (path === '/terms') { document.title = 'Terms — Doodle to Game'; renderLegal(main, 'terms'); }
-  else { document.title = 'Doodle to Game — make their drawing playable'; renderWorkshop(main); }
+  if (path === '/privacy') { updateMetadata('Privacy — Doodle to Game', 'How Doodle to Game stores drawings in this browser.'); renderLegal(main, 'privacy'); }
+  else if (path === '/terms') { updateMetadata('Terms — Doodle to Game', 'Terms for the local Doodle to Game workshop.'); renderLegal(main, 'terms'); }
+  else if (path === '/' || path === '/demo') { updateMetadata(isDemo ? 'Demo — Doodle to Game' : 'Doodle to Game — turn drawings into a game', isDemo ? 'A playable sample game for adults and children.' : 'Turn two drawings into a tiny game with a child.'); renderWorkshop(main); }
+  else { updateMetadata('Page not found — Doodle to Game', 'This Doodle to Game page does not exist.'); renderNotFound(main); }
 };
 
 const renderLegal = (main: HTMLElement, page: 'privacy' | 'terms'): void => {
   const privacy = `
-    <p class="kicker">The short version</p><h2>Private by default</h2>
-    <p>Doodle to Game processes photos and drawings in your browser. Artwork, settings, and the current game are stored in IndexedDB on this device. We do not upload child artwork, use analytics, or create accounts.</p>
-    <h3>What leaves the device</h3><p>Nothing during ordinary drawing and play. If you buy or restore the optional Workshop Pack, your browser contacts Sociobot’s billing API with the license token to check whether it is valid. Checkout is hosted by Sociobot/Dodo, the merchant of record; their checkout privacy terms apply there.</p>
-    <h3>Your controls</h3><p>Use “Export project” to keep a copy you control. Clear this site’s storage in browser settings to remove local artwork and a saved license. Uninstalling the PWA may not clear browser storage automatically.</p>
-    <h3>Children</h3><p>The app is designed for an adult and child to use together. It collects no name, age, account, or public profile. Adults should decide whether a paper photo contains private information before loading it.</p>
+    <p class="kicker">The short version</p><h1 tabindex="-1">Private by default</h1>
+    <p>Doodle to Game uses this browser for drawings and game settings. It does not ask you to create an account.</p>
+    <h2>What leaves this site</h2><p>Normal demo drawing and play send no data away from this site. The optional checkout opens at Sociobot/Dodo.</p>
+    <h2>Your controls</h2><p>Export a project file to keep a copy. Use browser settings to remove saved local data.</p>
+    <h2>Children</h2><p>Doodle to Game is for an adult and child to use together.</p>
     <p class="legal-date">Effective 28 August 2026 · Contact: privacy@sociobot.in</p>`;
   const terms = `
-    <p class="kicker">Plain-language terms</p><h2>Terms of use</h2>
-    <p>You may use Doodle to Game for personal, family, classroom, and workshop projects. You keep ownership of the drawings you load. The app runs locally and is provided “as is”; export anything you want to keep before clearing browser data.</p>
-    <h3>Workshop Pack</h3><p>The optional Workshop Pack costs US $9 once. It unlocks bonus ink colours and a geometric finish celebration. Sociobot/Dodo is the merchant of record and handles checkout and refunds. A refunded or revoked license stops unlocking paid extras; the three games, core colours, local save, import/export, and accessibility features stay available.</p>
-    <h3>Good workshop rules</h3><p>Only use artwork you have permission to use. Do not load unlawful or harmful material. This tool is not a public gallery and does not publish games online.</p>
-    <h3>Limits</h3><p>Simple background removal is designed for high-contrast art on plain paper and may need cleanup. Browser storage can be removed by the browser or device owner. To the extent allowed by law, Sociobot is not liable for lost local data or indirect damages.</p>
+    <p class="kicker">Plain-language terms</p><h1 tabindex="-1">Terms of use</h1>
+    <p>Use drawings you have permission to use. Keep a project file for anything you want to keep.</p>
+    <h2>Workshop Pack</h2><p>The optional Workshop Pack costs US $9 once. It adds four bonus ink colours and a finish celebration.</p>
+    <h2>Free game maker</h2><p>The game maker, saving, and project export stay free.</p>
+    <h2>Checkout</h2><p>Sociobot/Dodo hosts the optional checkout.</p>
     <p class="legal-date">Effective 28 August 2026 · Contact: support@sociobot.in</p>`;
   main.innerHTML = `<article class="legal"><a class="back-link" href="/" data-route="/">← Back to the workshop</a>${page === 'privacy' ? privacy : terms}</article>`;
 };
 
+const renderNotFound = (main: HTMLElement): void => {
+  main.innerHTML = `<article class="legal not-found"><p class="kicker">404</p><h1 tabindex="-1">This game board is blank</h1><p>That page is not part of Doodle to Game.</p><a class="primary-link" href="/" data-route="/">Go to the game maker</a></article>`;
+};
+
 const renderWorkshop = (main: HTMLElement): void => {
   main.innerHTML = `
+    ${isDemo ? '<aside class="demo-banner" aria-label="Demo controls"><strong>Demo — sample data, nothing is saved</strong><span><button type="button" class="text-button" data-action="reset-demo">Reset demo</button><a href="/" data-route="/">Start for real</a></span></aside>' : ''}
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-copy"><p class="kicker"><span aria-hidden="true">●</span> No account. No uploads.</p><h2 id="hero-title">Their drawing.<br><em>Your tiny game.</em></h2><p>Draw or photograph two characters, pick one simple rule, then play together. Everything happens right here on your device.</p><a class="primary-link" href="#maker">Make a game <span aria-hidden="true">→</span></a><p class="hero-note">Works offline after the first visit · About 15 minutes</p></div>
+      <div class="hero-copy"><p class="kicker"><span aria-hidden="true">●</span> No account · no uploads</p><h1 id="hero-title" tabindex="-1">Turn two drawings into a tiny game</h1><p>For an adult and child making their first game together.</p><a class="primary-link" href="/demo" data-route="/demo">Try it with sample drawings <span aria-hidden="true">→</span></a><p class="action-note">Opens a playable dodge game.</p><ul class="hero-facts"><li>No account or uploads</li><li>Works after the first visit</li><li>US $9 once for extra inks</li></ul></div>
       <picture class="hero-art"><source type="image/webp" srcset="/assets/hero-768.webp 768w, /assets/hero-1280.webp 1280w" sizes="(max-width: 850px) 54vw, 680px"><img src="/assets/hero-1280.jpg" width="1280" height="853" alt="Two paper doodle creatures passing through red and blue gates into a handmade game board" decoding="async" fetchpriority="high"></picture>
     </section>
     <section class="maker" id="maker" aria-labelledby="maker-title">
-      <div class="maker-heading"><div><p class="kicker">Your worktable</p><h2 id="maker-title">Make one small, playable thing</h2></div><p class="local-note"><span aria-hidden="true">⌂</span> ${storageAvailable ? 'Autosaves locally' : 'Storage unavailable—export before closing'}</p></div>
+      <div class="maker-heading"><div><p class="kicker">Your worktable</p><h2 id="maker-title">Make a game from two drawings</h2></div><p class="local-note"><span aria-hidden="true">⌂</span> ${storageAvailable ? 'Saved in this browser' : 'Storage unavailable—export before closing'}</p></div>
       <ol class="step-tabs" aria-label="Game-making steps">
         ${(['choose', 'draw', 'tune', 'play'] as Step[]).map((name, index) => `<li><button type="button" data-step="${name}" ${step === name ? 'aria-current="step"' : ''}><span>${index + 1}</span>${name === 'choose' ? 'Choose' : name === 'draw' ? 'Add art' : name === 'tune' ? 'Tune' : 'Play'}</button></li>`).join('')}
       </ol>
       <div id="work-stage" class="work-stage"></div>
-      <div class="project-tools" aria-labelledby="project-tools-title"><div><h3 id="project-tools-title">Keep your work</h3><p>Move this game to another device with a private project file.</p></div><div class="button-row"><button type="button" class="secondary" data-action="export">Export project</button><label class="button secondary file-button"><span>Import project</span><input id="import-file" type="file" accept="application/json,.json"></label></div></div>
+      <div class="project-tools" aria-labelledby="project-tools-title"><div><h3 id="project-tools-title">Export or import a project file</h3><p>Move a game to another device with a project file.</p></div><div class="button-row"><button type="button" class="secondary" data-action="export">Export project</button><label class="button secondary file-button"><span>Import project</span><input id="import-file" type="file" accept="application/json,.json"></label></div></div>
     </section>
     ${renderPaid()}
-    <section class="how"><p class="kicker">The whole trick</p><h2>Paper in. Play out.</h2><ol><li><span>01</span><h3>Make two doodles</h3><p>Use the built-in pad or photograph bold art on plain paper.</p></li><li><span>02</span><h3>Pick one rule</h3><p>Dodge, collect, or solve. Nothing else to configure.</p></li><li><span>03</span><h3>Pass the controls</h3><p>Use arrows, WASD, or the roomy touch pad.</p></li></ol></section>`;
+    <section class="how"><p class="kicker">How to make a game</p><h2>How drawings become a game</h2><ol><li><span>01</span><h3>Add two drawings</h3><p>Use the pad or a clear photo on plain paper.</p></li><li><span>02</span><h3>Choose a game rule</h3><p>Choose dodge, collect, or maze.</p></li><li><span>03</span><h3>Play side by side</h3><p>Use arrows, WASD, or the touch pad.</p></li></ol></section>`;
   renderStage();
 };
 
 const renderPaid = (): string => paid ? `
-  <section class="paid-strip paid-active" aria-labelledby="pack-title"><div><p class="kicker">Workshop Pack active</p><h2 id="pack-title">Bonus inks are on the table.</h2><p>Your license is stored on this device. Paid extras keep working offline after verification.</p></div><div class="pack-mark" aria-hidden="true"><i></i><i></i><i></i></div></section>` : `
-  <section class="paid-strip" aria-labelledby="pack-title"><div><p class="kicker">Optional extra</p><h2 id="pack-title">Workshop Pack · US $9 once</h2><p>Unlock four bonus ink colours and a geometric finish celebration. The complete three-game maker, saving, and exports stay free.</p><p class="legal-small">Hosted checkout by Sociobot/Dodo, the merchant of record. Refunds are handled there.</p></div><div class="purchase"><a class="primary-link" href="${checkoutUrl}">Buy Workshop Pack</a><details><summary>Have a license?</summary><form id="license-form"><label for="license-token">Paste the token from your receipt</label><div class="paste-row"><input id="license-token" autocomplete="off" spellcheck="false"><button type="submit" class="secondary" aria-label="Restore Workshop Pack license">Restore</button></div></form></details></div></section>`;
+  <section class="paid-strip paid-active" aria-labelledby="pack-title"><div><p class="kicker">Workshop Pack active</p><h2 id="pack-title">Bonus inks are ready.</h2><p>This license is saved in this browser.</p></div><div class="pack-mark" aria-hidden="true"><i></i><i></i><i></i></div></section>` : `
+  <section class="paid-strip" aria-labelledby="pack-title"><div><p class="kicker">Optional extra</p><h2 id="pack-title">Workshop Pack · US $9 once</h2><p>Four bonus ink colours and a finish celebration. The game maker, saving, and exports are free.</p><p class="legal-small">Checkout is hosted by Sociobot/Dodo.</p></div><div class="purchase"><a class="primary-link" href="${checkoutUrl}">Buy Workshop Pack</a><details><summary>Have a license?</summary><form id="license-form"><label for="license-token">Paste the token from your receipt</label><div class="paste-row"><input id="license-token" autocomplete="off" spellcheck="false"><button type="submit" class="secondary" aria-label="Restore Workshop Pack license">Restore</button></div></form></details></div></section>`;
 
 const renderStage = (): void => {
   game?.dispose(); game = undefined;
@@ -117,16 +142,16 @@ const renderStage = (): void => {
 };
 
 const chooseMarkup = (): string => `
-  <div class="stage-intro"><p class="step-number">Step 1</p><div><h3>Choose the kind of fun</h3><p>Same drawings, three dependable rules. You can switch later.</p></div></div>
+  <div class="stage-intro"><p class="step-number">Step 1</p><div><h3>Choose a game rule</h3><p>Pick dodge, collect, or maze for these two drawings.</p></div></div>
   <div class="template-grid" role="radiogroup" aria-label="Game template">
-    ${(Object.entries(templateCopy) as [GameTemplate, typeof templateCopy.collect][]).map(([key, info]) => `<button type="button" class="template-card" role="radio" aria-checked="${project.template === key}" tabindex="${project.template === key ? '0' : '-1'}" data-template="${key}"><span class="template-sketch ${key}" aria-hidden="true"><i></i><b></b><em></em></span><span class="template-eyebrow">${info.eyebrow}</span><strong>${info.title}</strong><small>${info.description}</small><span class="choose-label">${project.template === key ? 'Chosen ✓' : 'Choose this'}</span></button>`).join('')}
+    ${(Object.entries(templateCopy) as [GameTemplate, typeof templateCopy.collect][]).map(([key, info]) => `<button type="button" class="template-card" role="radio" aria-checked="${project.template === key}" tabindex="${project.template === key ? '0' : '-1'}" data-template="${key}"><span class="template-sketch ${key}" aria-hidden="true"><i></i><b></b><em></em></span><span class="template-eyebrow">${info.eyebrow}</span><strong>${info.title}</strong><small>${info.description}</small><span class="choose-label">${project.template === key ? 'Chosen ✓' : `Choose ${info.title}`}</span></button>`).join('')}
   </div><div class="stage-actions"><span></span><button type="button" class="primary" data-next="draw">Add your art <span aria-hidden="true">→</span></button></div>`;
 
 const drawMarkup = (): string => {
   const objectName = templateCopy[project.template].object;
   const colors = ['#172033', '#D8422E', '#1859C9', '#237A4B', ...(paid ? ['#8B3FA8', '#D56B00', '#087B80', '#EE6F9A'] : [])];
   return `
-    <div class="stage-intro"><p class="step-number">Step 2</p><div><h3>Bring in two doodles</h3><p>Draw here or take a photo. Bold dark lines on plain light paper clean up best.</p></div></div>
+    <div class="stage-intro"><p class="step-number">Step 2</p><div><h3>Add two drawings</h3><p>Draw here or take a photo. Bold dark lines on plain light paper clean up best.</p></div></div>
     <div class="asset-tabs" role="tablist" aria-label="Drawing slots"><button type="button" role="tab" aria-selected="${activeSlot === 'hero'}" data-slot="hero"><span class="asset-dot hero-dot"></span>Hero ${project.assets.hero ? '<b>Ready</b>' : '<b>Needs art</b>'}</button><button type="button" role="tab" aria-selected="${activeSlot === 'object'}" data-slot="object"><span class="asset-dot object-dot"></span>${objectName} ${project.assets.object ? '<b>Ready</b>' : '<b>Needs art</b>'}</button></div>
     <div class="editor-layout"><div class="canvas-wrap"><canvas id="draw-canvas" width="640" height="420" aria-label="Drawing pad for ${activeSlot === 'hero' ? 'hero' : objectName.toLowerCase()}" tabindex="0"></canvas><span class="canvas-caption">${activeSlot === 'hero' ? 'Hero' : objectName} drawing pad</span></div>
       <div class="drawing-tools"><fieldset><legend>Ink colour</legend><div class="swatches">${colors.map((color) => `<button type="button" class="swatch" data-color="${color}" aria-label="Use ${color} ink" aria-pressed="${editorColor === color}" style="--swatch:${color}"></button>`).join('')}</div>${!paid ? '<small>4 bonus inks in Workshop Pack</small>' : ''}</fieldset>
@@ -235,10 +260,33 @@ const selectTemplate = async (template: GameTemplate): Promise<void> => {
   focusTemplate(template);
 };
 
+const demoRequested = (): boolean => location.pathname.replace(/\/+$/, '') === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
+
+const loadRouteProject = async (): Promise<void> => {
+  const nextDemo = demoRequested();
+  if (nextDemo !== isDemo) {
+    isDemo = nextDemo;
+    setDemoMode(isDemo);
+    project = await loadProject();
+    if (isDemo) await saveProject(project);
+    step = isDemo ? 'play' : 'choose';
+    activeSlot = 'hero';
+    dirty = false;
+  }
+};
+
+const navigate = async (url: string, replace = false): Promise<void> => {
+  if (replace) history.replaceState({}, '', url);
+  else history.pushState({}, '', url);
+  await loadRouteProject();
+  renderRoute();
+  focusRouteHeading();
+};
+
 const handleClick = async (event: MouseEvent): Promise<void> => {
   const target = event.target as HTMLElement;
   const route = target.closest<HTMLAnchorElement>('[data-route]');
-  if (route) { event.preventDefault(); history.pushState({}, '', route.pathname); renderRoute(); document.querySelector<HTMLElement>('#main')?.focus(); return; }
+  if (route) { event.preventDefault(); await navigate(route.href); return; }
   const stepButton = target.closest<HTMLButtonElement>('[data-step]');
   if (stepButton) { if (step === 'draw' && dirty) await saveEditor(); step = stepButton.dataset.step as Step; renderWorkshop(document.querySelector('#main') as HTMLElement); document.querySelector('#maker')?.scrollIntoView({ behavior: 'smooth' }); return; }
   const templateButton = target.closest<HTMLButtonElement>('[data-template]');
@@ -269,6 +317,10 @@ const handleClick = async (event: MouseEvent): Promise<void> => {
   if (action === 'eraser') { erasing = !erasing; const button = target.closest<HTMLButtonElement>('[data-action="eraser"]'); button?.setAttribute('aria-pressed', String(erasing)); if (button) button.textContent = erasing ? 'Eraser on' : 'Eraser'; }
   if (action === 'remove-bg') { const canvas = document.querySelector<HTMLCanvasElement>('#draw-canvas'); const context = canvas?.getContext('2d', { willReadFrequently: true }); if (canvas && context) { editorHistory.push(context.getImageData(0, 0, canvas.width, canvas.height)); removePaperBackground(canvas); dirty = true; updateUndoButton(); setStatus('Light paper softened. Use Undo if an edge disappeared.', 'success'); } }
   if (action === 'export') downloadProject();
+  if (action === 'reset-demo') {
+    project = await resetDemoProject(); step = 'play'; activeSlot = 'hero'; dirty = false;
+    renderRoute(); setStatus('Fresh sample drawings are ready.', 'success');
+  }
   if (action === 'start-game') { game?.start(); document.querySelector<HTMLCanvasElement>('#game-canvas')?.focus(); }
   if (action === 'reset-game') game?.reset();
   if (action === 'reload') location.reload();
@@ -317,7 +369,9 @@ const registerServiceWorker = (): void => {
 const updateConnection = (): void => { const note = document.querySelector<HTMLElement>('#connection-note'); if (note) note.hidden = navigator.onLine; };
 
 const init = async (): Promise<void> => {
-  const returnedLicense = captureReturnedLicense(); paid = hasOptimisticUnlock(); shell(); renderRoute(); updateConnection();
+  const returnedLicense = captureReturnedLicense(); paid = hasOptimisticUnlock();
+  isDemo = demoRequested(); setDemoMode(isDemo); if (isDemo) step = 'play';
+  shell(); renderRoute(); updateConnection();
   app.addEventListener('click', (event) => { void handleClick(event); });
   app.addEventListener('change', (event) => { void handleChange(event); });
   app.addEventListener('submit', (event) => { void handleSubmit(event as SubmitEvent); });
@@ -336,10 +390,10 @@ const init = async (): Promise<void> => {
     const template = templates[next]?.dataset.template as GameTemplate | undefined;
     if (template) void selectTemplate(template);
   });
-  window.addEventListener('popstate', renderRoute); window.addEventListener('online', updateConnection); window.addEventListener('offline', updateConnection);
+  window.addEventListener('popstate', () => { void loadRouteProject().then(() => { renderRoute(); focusRouteHeading(); }); }); window.addEventListener('online', updateConnection); window.addEventListener('offline', updateConnection);
   window.addEventListener('keydown', (event) => { if (event.key === 'Escape' && step === 'play' && location.pathname === '/') { step = 'tune'; renderWorkshop(document.querySelector('#main') as HTMLElement); } });
   registerServiceWorker();
-  try { project = await loadProject(); } catch { storageAvailable = false; }
+  try { project = await loadProject(); if (isDemo) await saveProject(project); } catch { storageAvailable = false; }
   renderRoute();
   const verdict = await verifyLicense();
   if (returnedLicense && !verdict && !navigator.onLine) setStatus('Connect to the internet once to verify this license. Your free game is still ready.', 'plain');
