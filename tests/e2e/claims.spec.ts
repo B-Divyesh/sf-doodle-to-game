@@ -13,7 +13,7 @@ test('@claim:sample-demo Demo opens a playable dodge game with sample drawings',
   await expect(page.locator('#game-canvas')).toBeVisible();
 });
 
-test('@claim:demo-isolation Demo work does not change a real project', async ({ page }) => {
+test('@claim:demo-isolation Demo work is discarded and does not change a real project', async ({ page }) => {
   await page.goto('/demo');
   await page.getByRole('button', { name: /Make another version/ }).click();
   await page.locator('[data-template="maze"]').click();
@@ -21,7 +21,8 @@ test('@claim:demo-isolation Demo work does not change a real project', async ({ 
   await expect(page).toHaveURL('/');
   await expect(page.locator('[data-template="collect"]')).toHaveAttribute('aria-checked', 'true');
   await page.goto('/?demo=1');
-  await expect(page.getByText('Pocket maze')).toBeVisible();
+  await expect(page.getByText('Maya and Theo’s doodle dodge')).toBeVisible();
+  await expect(page.locator('#game-canvas')).toBeVisible();
 });
 
 test('@claim:local-private Demo drawing and play send no data away from this site', async ({ page }) => {

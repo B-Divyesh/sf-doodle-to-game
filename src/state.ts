@@ -84,6 +84,17 @@ export const resetDemoProject = async (): Promise<Project> => {
   return sampleProject();
 };
 
+/** Delete the disposable sample when someone leaves demo mode. */
+export const discardDemoProject = async (): Promise<void> => {
+  if (!demoMode) return;
+  const db = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const request = db.transaction(STORE, 'readwrite').objectStore(STORE).clear();
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error ?? new Error('Could not clear the demo.'));
+  });
+};
+
 export const saveProject = async (project: Project): Promise<void> => {
   const db = await openDatabase();
   project.updatedAt = new Date().toISOString();

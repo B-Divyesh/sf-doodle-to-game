@@ -2,7 +2,7 @@ import './styles.css';
 import { TinyGame } from './game';
 import { containImage, removePaperBackground } from './image';
 import { captureReturnedLicense, checkoutUrl, hasOptimisticUnlock, storeLicense, verifyLicense } from './license';
-import { defaultProject, loadProject, projectFromJson, projectToJson, resetDemoProject, saveProject, setDemoMode, type AssetSlot, type GameTemplate, type Project } from './state';
+import { defaultProject, discardDemoProject, loadProject, projectFromJson, projectToJson, resetDemoProject, sampleProject, saveProject, setDemoMode, type AssetSlot, type GameTemplate, type Project } from './state';
 
 type Step = 'choose' | 'draw' | 'tune' | 'play';
 
@@ -51,7 +51,7 @@ const shell = (): void => {
     </header>
     <div id="connection-note" class="connection-note" role="status" hidden>You’re offline — drawing and playing still work.</div>
     <main id="main" tabindex="-1"></main>
-    <footer><p>A tiny game maker for adults and children.</p><p><a href="/privacy" data-route="/privacy">Privacy</a> · <a href="/terms" data-route="/terms">Terms</a> · Built by Param Factory · build 635d7247</p></footer>
+    <footer><p>A tiny game maker for adults and children.</p><p><a href="/privacy" data-route="/privacy">Privacy</a> · <a href="/terms" data-route="/terms">Terms</a> · Built by Param Factory · build 20260828-polish-1</p></footer>
     <div id="app-status" class="app-status" role="status" aria-live="polite"></div>
     <div id="route-status" class="visually-hidden" aria-live="polite"></div>
     <div id="update-toast" class="toast" role="status" hidden><span>A fresh version is ready.</span><button type="button" data-action="reload">Reload</button></div>`;
@@ -265,6 +265,7 @@ const demoRequested = (): boolean => location.pathname.replace(/\/+$/, '') === '
 const loadRouteProject = async (): Promise<void> => {
   const nextDemo = demoRequested();
   if (nextDemo !== isDemo) {
+    if (isDemo) await discardDemoProject();
     isDemo = nextDemo;
     setDemoMode(isDemo);
     project = await loadProject();
@@ -370,7 +371,7 @@ const updateConnection = (): void => { const note = document.querySelector<HTMLE
 
 const init = async (): Promise<void> => {
   const returnedLicense = captureReturnedLicense(); paid = hasOptimisticUnlock();
-  isDemo = demoRequested(); setDemoMode(isDemo); if (isDemo) step = 'play';
+  isDemo = demoRequested(); setDemoMode(isDemo); if (isDemo) { project = sampleProject(); step = 'play'; }
   shell(); renderRoute(); updateConnection();
   app.addEventListener('click', (event) => { void handleClick(event); });
   app.addEventListener('change', (event) => { void handleChange(event); });
