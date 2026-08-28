@@ -1,0 +1,11 @@
+{
+  "slug": "doodle-to-game",
+  "title": "Doodle to Game",
+  "territory": "games-creative",
+  "user": "An adult making a first tiny game with a child who needs the child’s drawings to become playable assets without learning an engine or managing art files.",
+  "smallest_useful_product": "A tablet-friendly offline PWA with three fixed games (dodge, collect, top-down maze). It captures a drawing or photo of paper art, removes a simple background locally, assigns it to a sprite, and exposes only speed, score, and sound controls.",
+  "success_measure": "A child and adult make a playable, personalized game in 45 minutes, with the child drawing at least two assets and changing one rule themselves.",
+  "artifact_class": "pwa-offline",
+  "monetization": "one-time",
+  "constraints": "Process camera images locally; clearly warn that background removal is best on high-contrast paper; no uploaded child artwork; accessible touch targets and undo are required."
+}
