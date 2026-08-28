@@ -15,4 +15,8 @@ describe('project files', () => {
     expect(() => validateProject({ template: 'puzzle' })).toThrow(/unknown game/);
     expect(() => validateProject({ template: 'collect', assets: { hero: 'https://example.com/a.png' } })).toThrow(/unreadable drawing/);
   });
+
+  it('uses an actionable message for incomplete JSON', () => {
+    expect(() => projectFromJson('{')).toThrow(/incomplete.*Export it again/i);
+  });
 });

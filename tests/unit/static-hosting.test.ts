@@ -1,0 +1,24 @@
+// @ts-ignore Vitest provides Node's runtime module; the browser app itself needs no Node types.
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+const config = JSON.parse(readFileSync(new URL('../../public/staticwebapp.config.json', import.meta.url), 'utf8')) as {
+  globalHeaders: Record<string, string>;
+  mimeTypes: Record<string, string>;
+  routes: Array<{ route: string; headers: Record<string, string> }>;
+};
+
+describe('static release response policy', () => {
+  it('keeps documents and the service worker revalidating while immutable assets are long-lived', () => {
+    expect(config.globalHeaders['Cache-Control']).toBe('public, max-age=0, must-revalidate');
+    expect(config.routes.find((route) => route.route === '/assets/*')?.headers['Cache-Control']).toBe('public, max-age=31536000, immutable');
+    expect(config.routes.find((route) => route.route === '/sw.js')?.headers['Cache-Control']).toBe('public, max-age=0, must-revalidate');
+  });
+
+  it('sets the manifest MIME type and browser hardening policies', () => {
+    expect(config.mimeTypes['.webmanifest']).toBe('application/manifest+json');
+    expect(config.globalHeaders['Content-Security-Policy']).toContain("frame-ancestors 'none'");
+    expect(config.globalHeaders['Permissions-Policy']).toContain('geolocation=()');
+    expect(config.globalHeaders['X-Frame-Options']).toBe('DENY');
+  });
+});

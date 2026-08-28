@@ -119,7 +119,7 @@ const renderStage = (): void => {
 const chooseMarkup = (): string => `
   <div class="stage-intro"><p class="step-number">Step 1</p><div><h3>Choose the kind of fun</h3><p>Same drawings, three dependable rules. You can switch later.</p></div></div>
   <div class="template-grid" role="radiogroup" aria-label="Game template">
-    ${(Object.entries(templateCopy) as [GameTemplate, typeof templateCopy.collect][]).map(([key, info]) => `<button type="button" class="template-card" role="radio" aria-checked="${project.template === key}" data-template="${key}"><span class="template-sketch ${key}" aria-hidden="true"><i></i><b></b><em></em></span><span class="template-eyebrow">${info.eyebrow}</span><strong>${info.title}</strong><small>${info.description}</small><span class="choose-label">${project.template === key ? 'Chosen ✓' : 'Choose this'}</span></button>`).join('')}
+    ${(Object.entries(templateCopy) as [GameTemplate, typeof templateCopy.collect][]).map(([key, info]) => `<button type="button" class="template-card" role="radio" aria-checked="${project.template === key}" tabindex="${project.template === key ? '0' : '-1'}" data-template="${key}"><span class="template-sketch ${key}" aria-hidden="true"><i></i><b></b><em></em></span><span class="template-eyebrow">${info.eyebrow}</span><strong>${info.title}</strong><small>${info.description}</small><span class="choose-label">${project.template === key ? 'Chosen ✓' : 'Choose this'}</span></button>`).join('')}
   </div><div class="stage-actions"><span></span><button type="button" class="primary" data-next="draw">Add your art <span aria-hidden="true">→</span></button></div>`;
 
 const drawMarkup = (): string => {
@@ -224,6 +224,17 @@ const downloadProject = (): void => {
   setStatus('Project exported. Keep that file somewhere safe.', 'success');
 };
 
+const focusTemplate = (template: GameTemplate): void => {
+  document.querySelector<HTMLButtonElement>(`[data-template="${template}"]`)?.focus();
+};
+
+const selectTemplate = async (template: GameTemplate): Promise<void> => {
+  project.template = template;
+  await persist('Game type saved.');
+  renderStage();
+  focusTemplate(template);
+};
+
 const handleClick = async (event: MouseEvent): Promise<void> => {
   const target = event.target as HTMLElement;
   const route = target.closest<HTMLAnchorElement>('[data-route]');
@@ -231,7 +242,7 @@ const handleClick = async (event: MouseEvent): Promise<void> => {
   const stepButton = target.closest<HTMLButtonElement>('[data-step]');
   if (stepButton) { if (step === 'draw' && dirty) await saveEditor(); step = stepButton.dataset.step as Step; renderWorkshop(document.querySelector('#main') as HTMLElement); document.querySelector('#maker')?.scrollIntoView({ behavior: 'smooth' }); return; }
   const templateButton = target.closest<HTMLButtonElement>('[data-template]');
-  if (templateButton) { project.template = templateButton.dataset.template as GameTemplate; await persist('Game type saved.'); renderStage(); return; }
+  if (templateButton) { await selectTemplate(templateButton.dataset.template as GameTemplate); return; }
   const next = target.closest<HTMLButtonElement>('[data-next]');
   if (next) {
     if (step === 'draw' && dirty) await saveEditor();
@@ -303,6 +314,21 @@ const init = async (): Promise<void> => {
   app.addEventListener('click', (event) => { void handleClick(event); });
   app.addEventListener('change', (event) => { void handleChange(event); });
   app.addEventListener('submit', (event) => { void handleSubmit(event as SubmitEvent); });
+  app.addEventListener('keydown', (event) => {
+    const keyEvent = event as KeyboardEvent;
+    const card = (keyEvent.target as HTMLElement).closest<HTMLButtonElement>('[data-template]');
+    if (!card || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(keyEvent.key)) return;
+    const templates = [...document.querySelectorAll<HTMLButtonElement>('[data-template]')];
+    const current = templates.indexOf(card);
+    let next = current;
+    if (keyEvent.key === 'ArrowLeft' || keyEvent.key === 'ArrowUp') next = (current + templates.length - 1) % templates.length;
+    if (keyEvent.key === 'ArrowRight' || keyEvent.key === 'ArrowDown') next = (current + 1) % templates.length;
+    if (keyEvent.key === 'Home') next = 0;
+    if (keyEvent.key === 'End') next = templates.length - 1;
+    keyEvent.preventDefault();
+    const template = templates[next]?.dataset.template as GameTemplate | undefined;
+    if (template) void selectTemplate(template);
+  });
   window.addEventListener('popstate', renderRoute); window.addEventListener('online', updateConnection); window.addEventListener('offline', updateConnection);
   window.addEventListener('keydown', (event) => { if (event.key === 'Escape' && step === 'play' && location.pathname === '/') { step = 'tune'; renderWorkshop(document.querySelector('#main') as HTMLElement); } });
   registerServiceWorker();

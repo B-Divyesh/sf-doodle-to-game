@@ -1,5 +1,7 @@
 const PRODUCT = 'doodle-to-game';
-const API_BASE = (import.meta.env.VITE_BILLING_API_BASE || 'https://pilot-api.sociobot.in/api/v1').replace(/\/$/, '');
+// A release must never accidentally point customers at the staging checkout.
+// Developers can opt into pilot explicitly with VITE_BILLING_API_BASE.
+const API_BASE = (import.meta.env.VITE_BILLING_API_BASE || 'https://api.sociobot.in/api/v1').replace(/\/$/, '');
 const TOKEN_KEY = `sb_license:${PRODUCT}`;
 const CACHE_KEY = `sb_license_verdict:${PRODUCT}`;
 const ONE_DAY = 86_400_000;

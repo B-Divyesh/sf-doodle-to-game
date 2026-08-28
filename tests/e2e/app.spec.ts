@@ -54,6 +54,41 @@ test('has no serious accessibility violations', async ({ page }) => {
   expect(violations).toEqual([]);
 });
 
+test('has no serious dark-mode accessibility violations', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.goto('/');
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+  const violations = await page.evaluate(async () => {
+    const axe = (window as unknown as { axe: { run: (options: { runOnly: string[] }) => Promise<{ violations: Array<{ impact: string | null; id: string; nodes: unknown[] }> }> } }).axe;
+    const results = await axe.run({ runOnly: ['wcag2a', 'wcag2aa'] });
+    return results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''));
+  });
+  expect(violations).toEqual([]);
+});
+
+test('template radio cards keep roving focus with keyboard selection', async ({ page }) => {
+  await page.goto('/');
+  const dodge = page.locator('[data-template="dodge"]');
+  const collect = page.locator('[data-template="collect"]');
+  await dodge.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(collect).toBeFocused();
+  await expect(collect).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('ArrowLeft');
+  await expect(dodge).toBeFocused();
+  await expect(dodge).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('Space');
+  await expect(dodge).toBeFocused();
+});
+
+test('mobile footer links have 44px touch targets', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'Touch target dimensions apply at the 390px layout.');
+  await page.goto('/');
+  const heights = await page.locator('footer a').evaluateAll((links) => links.map((link) => Math.round(link.getBoundingClientRect().height)));
+  expect(heights).toHaveLength(3);
+  expect(heights.every((height) => height >= 44)).toBe(true);
+});
+
 test('legal pages are reachable without losing app structure', async ({ page }) => {
   await page.goto('/privacy/');
   await expect(page.getByRole('heading', { name: 'Private by default' })).toBeVisible();

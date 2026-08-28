@@ -43,10 +43,10 @@ The pinned Playwright version is `1.58.2`. The factory worker image already prov
 
 ## Billing environments
 
-Development/staging defaults to the Sociobot pilot API. The factory can switch the static build to live billing at release without changing source:
+Release builds default to the production Sociobot API, so a public buy link cannot accidentally send customers to pilot. Local staging can opt into pilot explicitly:
 
 ```sh
-VITE_BILLING_API_BASE=https://api.sociobot.in/api/v1 npm run build
+VITE_BILLING_API_BASE=https://pilot-api.sociobot.in/api/v1 npm run build
 ```
 
 The factory must register the `doodle-to-game` product and return URL before checkout is usable. No payment provider is embedded in this app.
@@ -63,7 +63,7 @@ The factory must register the `doodle-to-game` product and return URL before che
 
 ## Deployment
 
-Run `npm run build` and publish `dist/` as a static site. Configure the production billing environment variable shown above. Both direct legal routes are emitted as real HTML entry points; ordinary app navigation also works client-side.
+Run `npm run build` and publish `dist/` as a static site. The build includes `staticwebapp.config.json`, which supplies immutable caching for `/assets` and `/icons`, revalidation for documents and `sw.js`, the web-manifest MIME type, and first-party browser hardening headers. Both direct legal routes are emitted as real HTML entry points; ordinary app navigation also works client-side.
 
 ## License
 

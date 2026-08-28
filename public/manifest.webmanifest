@@ -2,7 +2,7 @@
   "name": "Doodle to Game",
   "short_name": "Doodle Game",
   "description": "Turn local drawings into tiny games, offline.",
-  "start_url": "/?source=installed&v=1",
+  "start_url": "/?source=installed&v=2",
   "scope": "/",
   "display": "standalone",
   "background_color": "#F7F1E3",

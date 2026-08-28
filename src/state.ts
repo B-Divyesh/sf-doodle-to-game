@@ -85,7 +85,12 @@ export const projectToJson = (project: Project): string => JSON.stringify({
 }, null, 2);
 
 export const projectFromJson = (json: string): Project => {
-  const payload = JSON.parse(json) as { format?: string; project?: unknown };
+  let payload: { format?: string; project?: unknown };
+  try {
+    payload = JSON.parse(json) as { format?: string; project?: unknown };
+  } catch {
+    throw new Error('That project file is incomplete. Export it again or choose another Doodle to Game JSON file.');
+  }
   if (payload.format !== 'doodle-to-game' || !payload.project) throw new Error('That file is not a Doodle to Game export.');
   return validateProject(payload.project);
 };
