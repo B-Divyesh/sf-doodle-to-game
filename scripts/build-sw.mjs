@@ -7,7 +7,7 @@ const walk = async (dir, prefix = '') => {
   const entries = await readdir(dir, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
-    if (entry.name === 'sw.js' || entry.name.endsWith('.map') || entry.name === '.vite') continue;
+    if (entry.name === 'sw.js' || entry.name.endsWith('.map') || entry.name === '.vite' || entry.name === 'staticwebapp.config.json') continue;
     const relative = `${prefix}/${entry.name}`;
     if (entry.isDirectory()) files.push(...await walk(join(dir, entry.name), relative));
     else files.push(relative);

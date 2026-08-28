@@ -23,9 +23,9 @@ let dirty = false;
 let isDemo = false;
 
 const templateCopy: Record<GameTemplate, { eyebrow: string; title: string; description: string; object: string }> = {
-  dodge: { eyebrow: 'Move + survive', title: 'Doodle dodge', description: 'Steer your hero away from a shower of wobbly obstacles.', object: 'Obstacle' },
+  dodge: { eyebrow: 'Move + survive', title: 'Doodle dodge', description: 'Steer your player drawing away from a shower of wobbly obstacles.', object: 'Obstacle' },
   collect: { eyebrow: 'Move + gather', title: 'Treasure dash', description: 'Race around the board and collect your second drawing.', object: 'Treasure' },
-  maze: { eyebrow: 'Think + explore', title: 'Pocket maze', description: 'Guide your hero through a fixed maze to the drawn goal.', object: 'Goal' },
+  maze: { eyebrow: 'Think + explore', title: 'Pocket maze', description: 'Guide your player drawing through a fixed maze to the drawn goal.', object: 'Goal' },
 };
 
 const escapeHtml = (value: string): string => value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character] ?? character);
@@ -51,20 +51,27 @@ const shell = (): void => {
     </header>
     <div id="connection-note" class="connection-note" role="status" hidden>You’re offline — drawing and playing still work.</div>
     <main id="main" tabindex="-1"></main>
-    <footer><p>A tiny game maker for adults and children.</p><p><a href="/privacy" data-route="/privacy">Privacy</a> · <a href="/terms" data-route="/terms">Terms</a> · Built by Param Factory · build 20260828-polish-1</p></footer>
+    <footer><p>A tiny game maker for adults and children.</p><p><a href="/privacy" data-route="/privacy">Privacy</a> · <a href="/terms" data-route="/terms">Terms</a> · Built by Param Factory · build 20260828-polish-2</p></footer>
     <div id="app-status" class="app-status" role="status" aria-live="polite"></div>
     <div id="route-status" class="visually-hidden" aria-live="polite"></div>
-    <div id="update-toast" class="toast" role="status" hidden><span>A fresh version is ready.</span><button type="button" data-action="reload">Reload</button></div>`;
+    <div id="update-toast" class="toast" role="status" hidden><span>A fresh version is ready.</span><button type="button" data-action="reload">Load update</button></div>`;
 };
 
-const updateMetadata = (title: string, description: string): void => {
+const updateMetadata = (title: string, description: string, canonicalPath = location.pathname, noindex = false): void => {
   document.title = title;
   document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute('content', description);
-  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', location.origin + location.pathname);
+  const canonical = location.origin + canonicalPath;
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', canonical);
   document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute('content', title);
   document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute('content', description);
+  document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute('content', canonical);
   document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')?.setAttribute('content', title);
   document.querySelector<HTMLMetaElement>('meta[name="twitter:description"]')?.setAttribute('content', description);
+  const existingRobots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+  if (noindex) {
+    const robots = existingRobots ?? document.head.appendChild(document.createElement('meta'));
+    robots.name = 'robots'; robots.content = 'noindex';
+  } else existingRobots?.remove();
 };
 
 const focusRouteHeading = (): void => {
@@ -81,15 +88,15 @@ const renderRoute = (): void => {
   const path = location.pathname.replace(/\/+$/, '') || '/';
   if (path === '/privacy') { updateMetadata('Privacy — Doodle to Game', 'How Doodle to Game stores drawings in this browser.'); renderLegal(main, 'privacy'); }
   else if (path === '/terms') { updateMetadata('Terms — Doodle to Game', 'Terms for the local Doodle to Game workshop.'); renderLegal(main, 'terms'); }
-  else if (path === '/' || path === '/demo') { updateMetadata(isDemo ? 'Demo — Doodle to Game' : 'Doodle to Game — turn drawings into a game', isDemo ? 'A playable sample game for adults and children.' : 'Turn two drawings into a tiny game with a child.'); renderWorkshop(main); }
-  else { updateMetadata('Page not found — Doodle to Game', 'This Doodle to Game page does not exist.'); renderNotFound(main); }
+  else if (path === '/' || path === '/demo') { updateMetadata(isDemo ? 'Demo — Doodle to Game' : 'Doodle to Game — turn drawings into a game', isDemo ? 'A playable sample game for adults and children.' : 'Turn two drawings into a tiny game with a child.', isDemo ? '/demo' : '/'); renderWorkshop(main); }
+  else { updateMetadata('Page not found — Doodle to Game', 'This Doodle to Game page does not exist.', location.pathname, true); renderNotFound(main); }
 };
 
 const renderLegal = (main: HTMLElement, page: 'privacy' | 'terms'): void => {
   const privacy = `
     <p class="kicker">The short version</p><h1 tabindex="-1">Private by default</h1>
     <p>Doodle to Game uses this browser for drawings and game settings. It does not ask you to create an account.</p>
-    <h2>What leaves this site</h2><p>Normal demo drawing and play send no data away from this site. The optional checkout opens at Sociobot/Dodo.</p>
+    <h2>What leaves this site</h2><p>Drawing and play send no data away from this site. The optional checkout opens at Sociobot/Dodo.</p>
     <h2>Your controls</h2><p>Export a project file to keep a copy. Use browser settings to remove saved local data.</p>
     <h2>Children</h2><p>Doodle to Game is for an adult and child to use together.</p>
     <p class="legal-date">Effective 28 August 2026 · Contact: privacy@sociobot.in</p>`;
@@ -98,7 +105,7 @@ const renderLegal = (main: HTMLElement, page: 'privacy' | 'terms'): void => {
     <p>Use drawings you have permission to use. Keep a project file for anything you want to keep.</p>
     <h2>Workshop Pack</h2><p>The optional Workshop Pack costs US $9 once. It adds four bonus ink colours and a finish celebration.</p>
     <h2>Free game maker</h2><p>The game maker, saving, and project export stay free.</p>
-    <h2>Checkout</h2><p>Sociobot/Dodo hosts the optional checkout.</p>
+    <h2>Checkout</h2><p>Sociobot/Dodo hosts the optional checkout as the merchant of record.</p>
     <p class="legal-date">Effective 28 August 2026 · Contact: support@sociobot.in</p>`;
   main.innerHTML = `<article class="legal"><a class="back-link" href="/" data-route="/">← Back to the workshop</a>${page === 'privacy' ? privacy : terms}</article>`;
 };
@@ -108,28 +115,44 @@ const renderNotFound = (main: HTMLElement): void => {
 };
 
 const renderWorkshop = (main: HTMLElement): void => {
+  if (isDemo) { renderDemo(main); return; }
   main.innerHTML = `
-    ${isDemo ? '<aside class="demo-banner" aria-label="Demo controls"><strong>Demo — sample data, nothing is saved</strong><span><button type="button" class="text-button" data-action="reset-demo">Reset demo</button><a href="/" data-route="/">Start for real</a></span></aside>' : ''}
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-copy"><p class="kicker"><span aria-hidden="true">●</span> No account · no uploads</p><h1 id="hero-title" tabindex="-1">Turn two drawings into a tiny game</h1><p>For an adult and child making their first game together.</p><a class="primary-link" href="/demo" data-route="/demo">Try it with sample drawings <span aria-hidden="true">→</span></a><p class="action-note">Opens a playable dodge game.</p><ul class="hero-facts"><li>No account or uploads</li><li>Works after the first visit</li><li>US $9 once for extra inks</li></ul></div>
-      <picture class="hero-art"><source type="image/webp" srcset="/assets/hero-768.webp 768w, /assets/hero-1280.webp 1280w" sizes="(max-width: 850px) 54vw, 680px"><img src="/assets/hero-1280.jpg" width="1280" height="853" alt="Two paper doodle creatures passing through red and blue gates into a handmade game board" decoding="async" fetchpriority="high"></picture>
+      <div class="hero-copy"><p class="kicker"><span aria-hidden="true">●</span> No account · no uploads</p><h1 id="hero-title" tabindex="-1">Turn two drawings into a tiny game</h1><p>For an adult and child making their first game together.</p><a class="primary-link" href="/?demo=1" data-route="/?demo=1">Try it with sample data <span aria-hidden="true">→</span></a><p class="action-note">Opens a playable dodge game.</p><ul class="hero-facts"><li>No account or uploads</li><li>Works after the first visit</li><li>US $9 once for extra inks</li></ul></div>
+      <picture class="hero-art"><source type="image/webp" srcset="/assets/hero-768.webp 768w, /assets/hero-1280.webp 1280w" sizes="(max-width: 850px) 54vw, 680px"><img src="/assets/hero-1280.jpg" width="1280" height="853" alt="Two paper drawing creatures passing through red and blue gates into a handmade game board" decoding="async" fetchpriority="high"></picture>
     </section>
     <section class="maker" id="maker" aria-labelledby="maker-title">
-      <div class="maker-heading"><div><p class="kicker">Your worktable</p><h2 id="maker-title">Make a game from two drawings</h2></div><p class="local-note"><span aria-hidden="true">⌂</span> ${storageAvailable ? 'Saved in this browser' : 'Storage unavailable—export before closing'}</p></div>
-      <ol class="step-tabs" aria-label="Game-making steps">
-        ${(['choose', 'draw', 'tune', 'play'] as Step[]).map((name, index) => `<li><button type="button" data-step="${name}" ${step === name ? 'aria-current="step"' : ''}><span>${index + 1}</span>${name === 'choose' ? 'Choose' : name === 'draw' ? 'Add art' : name === 'tune' ? 'Tune' : 'Play'}</button></li>`).join('')}
-      </ol>
+      <div class="maker-heading"><div><p class="kicker">Game maker</p><h2 id="maker-title">Make a game from two drawings</h2></div><p class="local-note"><span aria-hidden="true">⌂</span> ${storageAvailable ? 'Saved in this browser' : 'Storage unavailable—export before closing'}</p></div>
+      ${stepTabs()}
       <div id="work-stage" class="work-stage"></div>
       <div class="project-tools" aria-labelledby="project-tools-title"><div><h3 id="project-tools-title">Export or import a project file</h3><p>Move a game to another device with a project file.</p></div><div class="button-row"><button type="button" class="secondary" data-action="export">Export project</button><label class="button secondary file-button"><span>Import project</span><input id="import-file" type="file" accept="application/json,.json"></label></div></div>
     </section>
     ${renderPaid()}
-    <section class="how"><p class="kicker">How to make a game</p><h2>How drawings become a game</h2><ol><li><span>01</span><h3>Add two drawings</h3><p>Use the pad or a clear photo on plain paper.</p></li><li><span>02</span><h3>Choose a game rule</h3><p>Choose dodge, collect, or maze.</p></li><li><span>03</span><h3>Play side by side</h3><p>Use arrows, WASD, or the touch pad.</p></li></ol></section>`;
+    <section class="how"><p class="kicker">How to make a game</p><h2>How drawings become a game</h2><ol><li><span>01</span><h3>Add two drawings</h3><p>Use the pad or a clear photo on plain paper.</p></li><li><span>02</span><h3>Choose a game rule</h3><p>Choose dodge, collect, or maze.</p></li><li><span>03</span><h3>Play side by side</h3><p>Use arrow keys, the W, A, S, and D keys, or the touch pad.</p></li></ol></section>`;
+  renderStage();
+};
+
+const stepTabs = (): string => `<ol class="step-tabs" aria-label="Game-making steps">
+  ${(['choose', 'draw', 'tune', 'play'] as Step[]).map((name, index) => `<li><button type="button" data-step="${name}" ${step === name ? 'aria-current="step"' : ''}><span>${index + 1}</span>${name === 'choose' ? 'Choose game' : name === 'draw' ? 'Add drawings' : name === 'tune' ? 'Tune rules' : 'Play game'}</button></li>`).join('')}
+</ol>`;
+
+const renderDemo = (main: HTMLElement): void => {
+  main.innerHTML = `
+    <aside class="demo-banner" aria-label="Demo controls"><strong>Demo — sample data, nothing is saved</strong><span><button type="button" class="text-button" data-action="reset-demo">Reset demo</button><a href="/" data-route="/">Start for real</a></span></aside>
+    <section class="demo-first" id="maker" aria-labelledby="demo-title">
+      <div class="demo-heading"><div><p class="kicker">Playable sample</p><h1 id="demo-title" tabindex="-1">Play Maya and Theo’s Doodle dodge</h1><p>Two sample drawings are ready. The Workshop Pack finish is included for this demo.</p></div></div>
+      ${step === 'play' ? '' : stepTabs()}
+      <h2 class="visually-hidden">${step === 'play' ? 'Play the sample round' : 'Change the sample game'}</h2>
+      <div id="work-stage" class="work-stage demo-stage"></div>
+      <div class="project-tools" aria-labelledby="project-tools-title"><div><h2 id="project-tools-title">Export or import a project file</h2><p>Demo files stay separate from your saved game.</p></div><div class="button-row"><button type="button" class="secondary" data-action="export">Export sample project</button><label class="button secondary file-button"><span>Import sample project</span><input id="import-file" type="file" accept="application/json,.json"></label></div></div>
+    </section>
+    <section class="how"><p class="kicker">Try another version</p><h2>Change the sample game</h2><ol><li><span>01</span><h3>Add sample drawings</h3><p>Draw or use a clear photo on plain paper.</p></li><li><span>02</span><h3>Choose a game rule</h3><p>Choose dodge, collect, or maze.</p></li><li><span>03</span><h3>Play side by side</h3><p>Use arrow keys, the W, A, S, and D keys, or the touch pad.</p></li></ol></section>`;
   renderStage();
 };
 
 const renderPaid = (): string => paid ? `
   <section class="paid-strip paid-active" aria-labelledby="pack-title"><div><p class="kicker">Workshop Pack active</p><h2 id="pack-title">Bonus inks are ready.</h2><p>This license is saved in this browser.</p></div><div class="pack-mark" aria-hidden="true"><i></i><i></i><i></i></div></section>` : `
-  <section class="paid-strip" aria-labelledby="pack-title"><div><p class="kicker">Optional extra</p><h2 id="pack-title">Workshop Pack · US $9 once</h2><p>Four bonus ink colours and a finish celebration. The game maker, saving, and exports are free.</p><p class="legal-small">Checkout is hosted by Sociobot/Dodo.</p></div><div class="purchase"><a class="primary-link" href="${checkoutUrl}">Buy Workshop Pack</a><details><summary>Have a license?</summary><form id="license-form"><label for="license-token">Paste the token from your receipt</label><div class="paste-row"><input id="license-token" autocomplete="off" spellcheck="false"><button type="submit" class="secondary" aria-label="Restore Workshop Pack license">Restore</button></div></form></details></div></section>`;
+  <section class="paid-strip" aria-labelledby="pack-title"><div><p class="kicker">Optional extra</p><h2 id="pack-title">Workshop Pack · US $9 once</h2><p>Four bonus ink colours and a finish celebration. The game maker, saving, and exports are free.</p><p class="legal-small">Sociobot/Dodo hosts checkout as the merchant of record. Read <a href="/privacy" data-route="/privacy">Privacy</a> and <a href="/terms" data-route="/terms">Terms</a>.</p></div><div class="purchase"><a class="primary-link" href="${checkoutUrl}">Buy Workshop Pack</a><details><summary>Have a license?</summary><form id="license-form"><label for="license-token">Paste the token from your receipt</label><div class="paste-row"><input id="license-token" autocomplete="off" spellcheck="false"><button type="submit" class="secondary">Restore Workshop Pack</button></div></form></details></div></section>`;
 
 const renderStage = (): void => {
   game?.dispose(); game = undefined;
@@ -138,44 +161,44 @@ const renderStage = (): void => {
   if (step === 'choose') stage.innerHTML = chooseMarkup();
   else if (step === 'draw') { stage.innerHTML = drawMarkup(); setupEditor(); }
   else if (step === 'tune') stage.innerHTML = tuneMarkup();
-  else { stage.innerHTML = playMarkup(); setupGame(); }
+  else { stage.innerHTML = playMarkup(isDemo); setupGame(); }
 };
 
 const chooseMarkup = (): string => `
   <div class="stage-intro"><p class="step-number">Step 1</p><div><h3>Choose a game rule</h3><p>Pick dodge, collect, or maze for these two drawings.</p></div></div>
   <div class="template-grid" role="radiogroup" aria-label="Game template">
     ${(Object.entries(templateCopy) as [GameTemplate, typeof templateCopy.collect][]).map(([key, info]) => `<button type="button" class="template-card" role="radio" aria-checked="${project.template === key}" tabindex="${project.template === key ? '0' : '-1'}" data-template="${key}"><span class="template-sketch ${key}" aria-hidden="true"><i></i><b></b><em></em></span><span class="template-eyebrow">${info.eyebrow}</span><strong>${info.title}</strong><small>${info.description}</small><span class="choose-label">${project.template === key ? 'Chosen ✓' : `Choose ${info.title}`}</span></button>`).join('')}
-  </div><div class="stage-actions"><span></span><button type="button" class="primary" data-next="draw">Add your art <span aria-hidden="true">→</span></button></div>`;
+  </div><div class="stage-actions"><span></span><button type="button" class="primary" data-next="draw">Add two drawings <span aria-hidden="true">→</span></button></div>`;
 
 const drawMarkup = (): string => {
   const objectName = templateCopy[project.template].object;
   const colors = ['#172033', '#D8422E', '#1859C9', '#237A4B', ...(paid ? ['#8B3FA8', '#D56B00', '#087B80', '#EE6F9A'] : [])];
   return `
     <div class="stage-intro"><p class="step-number">Step 2</p><div><h3>Add two drawings</h3><p>Draw here or take a photo. Bold dark lines on plain light paper clean up best.</p></div></div>
-    <div class="asset-tabs" role="tablist" aria-label="Drawing slots"><button type="button" role="tab" aria-selected="${activeSlot === 'hero'}" data-slot="hero"><span class="asset-dot hero-dot"></span>Hero ${project.assets.hero ? '<b>Ready</b>' : '<b>Needs art</b>'}</button><button type="button" role="tab" aria-selected="${activeSlot === 'object'}" data-slot="object"><span class="asset-dot object-dot"></span>${objectName} ${project.assets.object ? '<b>Ready</b>' : '<b>Needs art</b>'}</button></div>
-    <div class="editor-layout"><div class="canvas-wrap"><canvas id="draw-canvas" width="640" height="420" aria-label="Drawing pad for ${activeSlot === 'hero' ? 'hero' : objectName.toLowerCase()}" tabindex="0"></canvas><span class="canvas-caption">${activeSlot === 'hero' ? 'Hero' : objectName} drawing pad</span></div>
+    <div class="asset-tabs" role="tablist" aria-label="Drawing slots"><button type="button" role="tab" aria-selected="${activeSlot === 'hero'}" data-slot="hero"><span class="asset-dot hero-dot"></span>Player drawing ${project.assets.hero ? '<b>Ready</b>' : '<b>Needs drawing</b>'}</button><button type="button" role="tab" aria-selected="${activeSlot === 'object'}" data-slot="object"><span class="asset-dot object-dot"></span>${objectName} drawing ${project.assets.object ? '<b>Ready</b>' : '<b>Needs drawing</b>'}</button></div>
+    <div class="editor-layout"><div class="canvas-wrap"><canvas id="draw-canvas" width="640" height="420" aria-label="Drawing pad for ${activeSlot === 'hero' ? 'player' : objectName.toLowerCase()}" tabindex="0"></canvas><span class="canvas-caption">${activeSlot === 'hero' ? 'Player' : objectName} drawing pad</span></div>
       <div class="drawing-tools"><fieldset><legend>Ink colour</legend><div class="swatches">${colors.map((color) => `<button type="button" class="swatch" data-color="${color}" aria-label="Use ${color} ink" aria-pressed="${editorColor === color}" style="--swatch:${color}"></button>`).join('')}</div>${!paid ? '<small>4 bonus inks in Workshop Pack</small>' : ''}</fieldset>
       <label for="brush-size">Brush size <output id="brush-output">${editorSize}px</output></label><input id="brush-size" type="range" min="4" max="32" value="${editorSize}">
       <div class="tool-grid"><button type="button" class="secondary" data-action="eraser" aria-pressed="${erasing}">Eraser</button><button type="button" class="secondary" data-action="undo" ${editorHistory.length ? '' : 'disabled'}>Undo</button><button type="button" class="secondary" data-action="clear">Clear</button></div>
-      <div class="photo-tool"><label class="button secondary file-button"><span>Use a photo</span><input id="photo-file" type="file" accept="image/*" capture="environment"></label><button type="button" class="secondary" data-action="remove-bg">Remove paper</button><small>Photos never leave this device. Background cleanup works best with high-contrast art on plain paper.</small></div></div></div>
-    <div class="stage-actions"><button type="button" class="text-button" data-back="choose">← Change game</button><button type="button" class="primary" data-action="save-art">Save this doodle</button><button type="button" class="primary" data-next="tune">Tune the rules <span aria-hidden="true">→</span></button></div>`;
+      <div class="photo-tool"><label class="button secondary file-button"><span>Use a photo</span><input id="photo-file" type="file" accept="image/*" capture="environment"></label><button type="button" class="secondary" data-action="remove-bg">Remove paper</button><small>Photos never leave this device. Background cleanup works best with a high-contrast drawing on plain paper.</small></div></div></div>
+    <div class="stage-actions"><button type="button" class="text-button" data-back="choose">← Change game</button><button type="button" class="primary" data-action="save-art">Save drawing</button><button type="button" class="primary" data-next="tune">Tune rules <span aria-hidden="true">→</span></button></div>`;
 };
 
 const tuneMarkup = (): string => {
   const shortLabel = project.template === 'dodge' ? '15 seconds' : project.template === 'collect' ? '5 treasures' : 'Relaxed target';
   const longLabel = project.template === 'dodge' ? '30 seconds' : project.template === 'collect' ? '10 treasures' : 'Fewer moves';
-  return `<div class="stage-intro"><p class="step-number">Step 3</p><div><h3>Choose just three rules</h3><p>The game is already built. These are the only knobs you need.</p></div></div>
+  return `<div class="stage-intro"><p class="step-number">Step 3</p><div><h3>Tune three rules</h3><p>The game is ready. These are the three settings.</p></div></div>
     <div class="tune-grid"><fieldset><legend>Movement speed</legend><label><input type="radio" name="speed" value="gentle" ${project.speed === 'gentle' ? 'checked' : ''}><span><b>Gentle</b><small>More room to learn</small></span></label><label><input type="radio" name="speed" value="zippy" ${project.speed === 'zippy' ? 'checked' : ''}><span><b>Zippy</b><small>A lively challenge</small></span></label></fieldset>
     <fieldset><legend>Score goal</legend><label><input type="radio" name="score" value="short" ${project.score === 'short' ? 'checked' : ''}><span><b>${shortLabel}</b><small>Good for a first round</small></span></label><label><input type="radio" name="score" value="long" ${project.score === 'long' ? 'checked' : ''}><span><b>${longLabel}</b><small>Try a bigger challenge</small></span></label></fieldset>
     <fieldset><legend>Game sound</legend><label class="sound-toggle"><input type="checkbox" id="sound-toggle" ${project.sound ? 'checked' : ''}><span><b>${project.sound ? 'Sound on' : 'Sound off'}</b><small>Simple locally generated beeps</small></span></label></fieldset></div>
-    <div class="stage-actions"><button type="button" class="text-button" data-back="draw">← Edit art</button><button type="button" class="primary play-button" data-next="play"><span aria-hidden="true">▶</span> Open the game</button></div>`;
+    <div class="stage-actions"><button type="button" class="text-button" data-back="draw">← Edit drawings</button><button type="button" class="primary play-button" data-next="play"><span aria-hidden="true">▶</span> Play game</button></div>`;
 };
 
-const playMarkup = (): string => `
-  <div class="stage-intro play-intro"><p class="step-number">Step 4</p><div><h3>${escapeHtml(project.title)}</h3><p>${templateCopy[project.template].title} · Arrows, WASD, or the touch pad</p></div><div class="hud"><strong id="game-score">Ready</strong><span id="game-detail">Press start</span></div></div>
-  <div class="game-shell"><div class="game-screen"><canvas id="game-canvas" width="720" height="430" tabindex="0" aria-label="${templateCopy[project.template].title} play area. Use arrow or WASD keys.">Your browser needs canvas to play this game.</canvas><div id="game-message" class="game-message" role="status" aria-live="assertive" hidden></div>${paid ? '<div id="confetti" class="confetti" aria-hidden="true"></div>' : ''}</div>
-  <div class="game-controls"><div class="dpad" aria-label="Touch direction controls"><span></span><button type="button" data-direction="up" aria-label="Move up">↑</button><span></span><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="down" aria-label="Move down">↓</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="round-actions"><button type="button" class="primary" data-action="start-game">Start round</button><button type="button" class="secondary" data-action="reset-game">Reset</button></div></div></div>
-  <div class="stage-actions"><button type="button" class="text-button" data-back="tune">← Tune rules</button><button type="button" class="secondary" data-back="choose">Make another version</button></div>`;
+const playMarkup = (compact = false): string => `
+  ${compact ? `<div class="demo-game-meta"><p>${templateCopy[project.template].title} · Use arrow keys, W, A, S, and D keys, or touch.</p><div class="hud"><strong id="game-score">Ready</strong><span id="game-detail">Press start</span></div></div>` : `<div class="stage-intro play-intro"><p class="step-number">Step 4</p><div><h3>${escapeHtml(project.title)}</h3><p>${templateCopy[project.template].title} · Use arrow keys, W, A, S, and D keys, or touch.</p></div><div class="hud"><strong id="game-score">Ready</strong><span id="game-detail">Press start</span></div></div>`}
+  <div class="game-shell"><div class="game-screen"><canvas id="game-canvas" width="720" height="430" tabindex="0" aria-label="${templateCopy[project.template].title} play area. Use arrow keys or the W, A, S, and D keys.">Your browser needs canvas to play this game.</canvas><div id="game-message" class="game-message" role="status" aria-live="assertive" hidden></div>${paid ? '<div id="confetti" class="confetti" aria-hidden="true"></div>' : ''}</div>
+  <div class="game-controls"><div class="dpad" aria-label="Touch direction controls"><span></span><button type="button" data-direction="up" aria-label="Move up">↑</button><span></span><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="down" aria-label="Move down">↓</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="round-actions"><button type="button" class="primary" data-action="start-game">Start round</button><button type="button" class="secondary" data-action="reset-game">Reset round</button></div></div></div>
+  <div class="stage-actions"><button type="button" class="text-button" data-back="tune">← Tune rules</button><button type="button" class="secondary" data-back="choose">Choose another game</button></div>`;
 
 const saveEditor = async (): Promise<boolean> => {
   const canvas = document.querySelector<HTMLCanvasElement>('#draw-canvas');
@@ -183,10 +206,10 @@ const saveEditor = async (): Promise<boolean> => {
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) return false;
   const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-  if (!pixels.some((value, index) => index % 4 === 3 && value > 10)) { setStatus(`Add something to the ${activeSlot === 'hero' ? 'hero' : templateCopy[project.template].object.toLowerCase()} pad first.`, 'error'); return false; }
+  if (!pixels.some((value, index) => index % 4 === 3 && value > 10)) { setStatus(`Add something to the ${activeSlot === 'hero' ? 'player' : templateCopy[project.template].object.toLowerCase()} drawing pad first.`, 'error'); return false; }
   project.assets[activeSlot] = canvas.toDataURL('image/webp', .84);
   dirty = false;
-  await persist(`${activeSlot === 'hero' ? 'Hero' : templateCopy[project.template].object} saved on this device.`);
+  await persist(`${activeSlot === 'hero' ? 'Player drawing' : `${templateCopy[project.template].object} drawing`} saved on this device.`);
   return true;
 };
 
@@ -268,6 +291,7 @@ const loadRouteProject = async (): Promise<void> => {
     if (isDemo) await discardDemoProject();
     isDemo = nextDemo;
     setDemoMode(isDemo);
+    paid = isDemo ? true : hasOptimisticUnlock();
     project = await loadProject();
     if (isDemo) await saveProject(project);
     step = isDemo ? 'play' : 'choose';
@@ -353,6 +377,7 @@ const handleChange = async (event: Event): Promise<void> => {
 const handleSubmit = async (event: SubmitEvent): Promise<void> => {
   const form = event.target as HTMLFormElement;
   if (form.id !== 'license-form') return;
+  if (isDemo) return;
   event.preventDefault(); const input = form.querySelector<HTMLInputElement>('#license-token');
   try { storeLicense(input?.value ?? ''); setStatus('Checking that license…'); const verdict = await verifyLicense(true); if (!verdict?.valid) { setStatus('That license is not active. Check the token and try again.', 'error'); return; } paid = true; renderWorkshop(document.querySelector('#main') as HTMLElement); setStatus('Workshop Pack restored on this device.', 'success'); }
   catch (error) { setStatus(error instanceof Error ? error.message : 'Could not restore that license.', 'error'); }
@@ -370,8 +395,11 @@ const registerServiceWorker = (): void => {
 const updateConnection = (): void => { const note = document.querySelector<HTMLElement>('#connection-note'); if (note) note.hidden = navigator.onLine; };
 
 const init = async (): Promise<void> => {
-  const returnedLicense = captureReturnedLicense(); paid = hasOptimisticUnlock();
-  isDemo = demoRequested(); setDemoMode(isDemo); if (isDemo) { project = sampleProject(); step = 'play'; }
+  isDemo = demoRequested();
+  setDemoMode(isDemo);
+  const returnedLicense = isDemo ? false : captureReturnedLicense();
+  paid = isDemo ? true : hasOptimisticUnlock();
+  if (isDemo) { project = sampleProject(); step = 'play'; }
   shell(); renderRoute(); updateConnection();
   app.addEventListener('click', (event) => { void handleClick(event); });
   app.addEventListener('change', (event) => { void handleChange(event); });
@@ -396,9 +424,9 @@ const init = async (): Promise<void> => {
   registerServiceWorker();
   try { project = await loadProject(); if (isDemo) await saveProject(project); } catch { storageAvailable = false; }
   renderRoute();
-  const verdict = await verifyLicense();
+  const verdict = isDemo ? null : await verifyLicense();
   if (returnedLicense && !verdict && !navigator.onLine) setStatus('Connect to the internet once to verify this license. Your free game is still ready.', 'plain');
-  if (verdict && verdict.valid !== paid) { paid = verdict.valid; renderRoute(); if (!verdict.valid) setStatus('This license is no longer active. Free games and your artwork are unchanged.', 'error'); }
+  if (verdict && verdict.valid !== paid) { paid = verdict.valid; renderRoute(); if (!verdict.valid) setStatus('This license is no longer active. Free games and your drawings are unchanged.', 'error'); }
   else if (returnedLicense && verdict && !verdict.valid) setStatus('That license is not active. Check the token or buy the Workshop Pack.', 'error');
 };
 

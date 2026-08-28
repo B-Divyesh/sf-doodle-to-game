@@ -103,8 +103,8 @@ export class TinyGame {
   }
 
   private instructions(): string {
-    if (this.project.template === 'dodge') return 'Stay clear of the falling doodles.';
-    if (this.project.template === 'collect') return 'Collect every doodle you can.';
+    if (this.project.template === 'dodge') return 'Stay clear of the falling drawings.';
+    if (this.project.template === 'collect') return 'Collect every drawing you can.';
     return 'Find the green star. Every move counts.';
   }
 
@@ -156,8 +156,8 @@ export class TinyGame {
         target.y = 40 + Math.random() * (HEIGHT - 100);
         this.beep(520 + this.score * 35);
       }
-      this.callbacks.onHud(`${this.score} / ${goal}`, 'Doodles collected');
-      if (this.score >= goal) this.finish(`You found all ${goal} doodles!`, true);
+      this.callbacks.onHud(`${this.score} / ${goal}`, 'Drawings collected');
+      if (this.score >= goal) this.finish(`You found all ${goal} drawings!`, true);
     }
   }
 
