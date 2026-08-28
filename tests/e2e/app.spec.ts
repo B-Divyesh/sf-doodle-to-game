@@ -196,6 +196,21 @@ test('legal pages are reachable without losing app structure', async ({ page }) 
   await expect(page.getByRole('heading', { name: /Turn two drawings/ })).toBeVisible();
 });
 
+test('routes set metadata, announce their heading, and show a styled missing-page route', async ({ page }) => {
+  await page.goto('/demo');
+  await expect(page).toHaveTitle('Demo — Doodle to Game');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/demo$/);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Demo — Doodle to Game');
+  await page.getByRole('link', { name: 'Privacy', exact: true }).first().click();
+  const privacyHeading = page.getByRole('heading', { name: 'Private by default' });
+  await expect(privacyHeading).toBeFocused();
+  await expect(page.locator('#route-status')).toHaveText('Private by default');
+  await page.goto('/no-such-page');
+  await expect(page).toHaveTitle('Page not found — Doodle to Game');
+  await expect(page.getByRole('heading', { name: 'This game board is blank' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Go to the game maker' })).toBeVisible();
+});
+
 test('all three fixed game templates start', async ({ page }) => {
   for (const template of ['dodge', 'collect', 'maze']) {
     await page.goto('/');
