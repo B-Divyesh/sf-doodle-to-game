@@ -59,8 +59,9 @@ const renderRoute = (): void => {
   game?.dispose(); game = undefined;
   const main = document.querySelector<HTMLElement>('#main');
   if (!main) return;
-  if (location.pathname === '/privacy') renderLegal(main, 'privacy');
-  else if (location.pathname === '/terms') renderLegal(main, 'terms');
+  const path = location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/privacy') renderLegal(main, 'privacy');
+  else if (path === '/terms') renderLegal(main, 'terms');
   else renderWorkshop(main);
 };
 
@@ -298,15 +299,15 @@ const registerServiceWorker = (): void => {
 const updateConnection = (): void => { const note = document.querySelector<HTMLElement>('#connection-note'); if (note) note.hidden = navigator.onLine; };
 
 const init = async (): Promise<void> => {
-  captureReturnedLicense(); paid = hasOptimisticUnlock(); shell();
-  try { project = await loadProject(); } catch { storageAvailable = false; }
-  renderRoute(); updateConnection();
+  captureReturnedLicense(); paid = hasOptimisticUnlock(); shell(); renderRoute(); updateConnection();
   app.addEventListener('click', (event) => { void handleClick(event); });
   app.addEventListener('change', (event) => { void handleChange(event); });
   app.addEventListener('submit', (event) => { void handleSubmit(event as SubmitEvent); });
   window.addEventListener('popstate', renderRoute); window.addEventListener('online', updateConnection); window.addEventListener('offline', updateConnection);
   window.addEventListener('keydown', (event) => { if (event.key === 'Escape' && step === 'play' && location.pathname === '/') { step = 'tune'; renderWorkshop(document.querySelector('#main') as HTMLElement); } });
   registerServiceWorker();
+  try { project = await loadProject(); } catch { storageAvailable = false; }
+  renderRoute();
   const verdict = await verifyLicense();
   if (verdict && verdict.valid !== paid) { paid = verdict.valid; renderRoute(); if (!verdict.valid) setStatus('This license is no longer active. Free games and your artwork are unchanged.', 'error'); }
 };
