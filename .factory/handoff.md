@@ -1,24 +1,39 @@
-# Handoff — Doodle to Game verification 4
+# Handoff — Doodle to Game verification 5
 
 ## Status
 
-**FAIL — candidate `635d7247a95ab2db7c8054b8e227deba4dc79842` must not be promoted.**
+**PASS — candidate `635d7247a95ab2db7c8054b8e227deba4dc79842` is release-complete.**
 
-Independent verification ran on 2026-08-28 UTC against the exact local production build and <https://doodle-to-game.sociobot.in>. The complete evidence is in [verification-4.md](verification-4.md).
+Independent verification ran on 2026-08-28 UTC against a clean checkout, the exact production build, and <https://doodle-to-game.sociobot.in>. Full evidence is in [verification-5.md](verification-5.md).
 
 ## What passed
 
-- Clean `npm ci`, zero-vulnerability audit, 12 unit tests, type check/build, and the repository Playwright suite (last run passed; 26 tests passed, 4 intentional skips).
-- The live HTML, JS, CSS, manifest, and service worker are byte-identical to this candidate.
-- The three-game draw/photo → tune → play workshop works at desktop and 390 px, including invalid image/import recovery, IndexedDB persistence, keyboard use, visible focus, reduced motion, and zero axe serious/critical findings.
-- PWA offline reload and a simulated versioned-worker update pass. Privacy remains local-first: no normal-flow uploads, analytics, third-party scripts, or account flow.
-- Live response policy/caching pass. Lighthouse mobile is 99 performance, 100 accessibility, and 100 best practices locally and live.
-- The earlier production-checkout problem is repaired: the production purchase endpoint now returns HTTP 303 to hosted Dodo checkout.
+- `npm ci`, zero-vulnerability audit, 12 unit/integration tests, strict type check, exact Vite production build, and 26 applicable Playwright tests.
+- The live HTML, JS, CSS, service worker, manifest, privacy page, and terms page are byte-identical to the candidate build.
+- The complete two-drawing workflow works for dodge, collect, and maze with local photo cleanup, rule changes, play, keyboard/touch controls, IndexedDB persistence, JSON export/import, invalid-input recovery, and no console/page/request failures.
+- Desktop and 390 px layouts pass visual, overflow, focus, touch-target, dark-mode, reduced-motion, and axe checks. Axe found zero serious/critical issues; Lighthouse scored 100/100/100 locally and live.
+- Ordinary use remains local-first with no uploads, analytics, tracking, CDN scripts/fonts, account, or sign-in. Legal pages, CSP/security headers, cache policy, and bundle budgets pass.
+- The PWA installs from a complete manifest, reloads offline under cache `doodle-e79814868b09`, retains state, and exposes a working update toast before replacing the versioned cache.
+- Production checkout redirects to hosted Dodo and displays the correct Workshop Pack and `$9.00` price. Invalid tokens remain locked.
 
-## Release blocker
+## Previous blocker resolved
 
-The Sociobot production license-verification endpoint has no observed rate limit. Forty rapid sequential and 100 concurrent invalid-token requests all received HTTP 200; none received HTTP 429 or `Retry-After`. This directly violates the work-order requirement for server-side endpoints.
+A fresh burst of 150 concurrent unique invalid-token requests to the production verification endpoint returned 30 × HTTP 200 followed by 120 × HTTP 429. The first 429 occurred at request index 30, and every limited response included `Retry-After: 4`. The observed threshold is 30 accepted requests per burst.
 
-## Required next step
+This clears verification 4's sole release blocker. No critical, high, medium, or low defects remain.
 
-Apply server-side rate limiting to `GET /api/v1/products/doodle-to-game/verify` (and appropriate checkout protection), returning `429` with `Retry-After`. Rerun the burst and record its observed threshold in a fresh verification report. No product source files were changed during this verification.
+## Reproduce
+
+```sh
+npm ci
+npm audit --audit-level=low
+npm test
+npm run build
+npm run preview
+```
+
+## Known operational check
+
+No real-money purchase was made during QA. Hosted product/price, invalid return, offline-unverified behavior, restore logic, and rate limiting were verified; a valid purchase return followed by refund/revocation should remain part of post-purchase monitoring.
+
+No product code was modified during verification.
