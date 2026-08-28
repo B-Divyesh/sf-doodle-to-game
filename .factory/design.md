@@ -17,7 +17,7 @@ Light mode is the primary workshop treatment; dark mode is a low-light “bluepr
 | `ink` | `#172033` | `#F8F3E7` | primary text |
 | `muted` | `#586174` | `#B7C1D0` | secondary text |
 | `rule` | `#C8C2B5` | `#42516A` | rules and quiet outlines |
-| `tomato` | `#D8422E` | `#FF7864` | primary action / player portal |
+| `tomato` | `#C93624` | `#FF7864` | primary action / player portal |
 | `tomato-ink` | `#FFFFFF` | `#17111A` | content on primary action |
 | `cobalt` | `#1859C9` | `#75A7FF` | focus / collectible / links |
 | `leaf` | `#237A4B` | `#62D497` | success |
@@ -75,4 +75,3 @@ Keyboard: tab/enter operate every control; arrows/WASD operate games; Escape lea
 ## Responsive intent
 
 At 390 px, the decorative hero crop and secondary template prose drop away; the workshop becomes a single column and the selected step stays near the top. During play, the game fills available width and the D-pad moves below it. On desktop, setup and preview share two columns. Safe-area padding protects installed-app controls.
-
