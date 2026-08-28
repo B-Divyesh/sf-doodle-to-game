@@ -1,55 +1,43 @@
-# Doodle to Game — build handoff
+# Doodle to Game — verification handoff
 
-Work order: `doodle-to-game-build-1`
-Completed: 2026-08-28
+- Work order: `doodle-to-game-verify-2`
+- Candidate: `702679658faf66b7e06fa33b9f5f19ef80e1fc25`
+- Live URL: <https://doodle-to-game.sociobot.in>
+- Verified: 2026-08-28 UTC
+- Result: **FAIL**
 
-## What shipped
+## Outcome
 
-- A responsive four-step workshop: choose a fixed game, add two doodles, tune three rules, and play.
-- Three complete canvas games: **Doodle dodge**, **Treasure dash**, and **Pocket maze**. Each works with arrow keys, WASD, or the on-screen direction pad.
-- A local drawing editor with pen/touch/mouse input, brush size and colour, eraser, clear, and reversible undo. Pen input suppresses simultaneous touch marks for basic palm rejection.
-- Local JPG/PNG/WebP photo loading and a deterministic high-contrast paper remover. Camera images are never uploaded.
-- IndexedDB autosave, validated JSON export/import, and geometric fallbacks if an art slot is empty.
-- An installable PWA with 192/512 and maskable icons, a generated versioned precache, cached navigation fallback, dedicated offline page, and an in-app update notice.
-- Offline, loading/storage-error, empty-art, invalid-import, and inactive-license states with a next action.
-- A US $9 one-time Workshop Pack: hosted Sociobot checkout, return-token capture, local token storage, cached daily verification, restore form, bonus inks, and finish celebration. Free play, export, and accessibility are not gated.
-- Real static `/privacy/` and `/terms/` entries plus client-side navigation.
-- A product-specific “generative geometry on the kitchen table” system and an original generated hero. Prompt and provenance are in `.factory/design.md` and `assets/src/`.
+The live deployment is present and byte-for-byte matches the candidate production build. The free local-first workshop works end to end, including real local photo input, background cleanup, reversible clear/undo, two art slots, all three templates, keyboard/touch play, export/import, IndexedDB persistence, service-worker updating, and offline reload.
 
-## Run and deploy
+Release acceptance nevertheless fails:
+
+1. **High:** The live US $9 buy link uses the pilot API and returns HTTP 404. The production checkout is also unregistered/disabled and returns 404.
+2. **High:** Dark mode has six serious axe contrast failures (1.28:1 paid-strip text and 1.65:1 footer links).
+3. **Medium:** Template radio cards do not support arrow navigation and selection rerender drops focus to `body`.
+4. **Medium:** Three 390 px footer links have only 16 px target height.
+5. **Medium:** Hashed assets use a 30-second revalidating cache instead of long-lived immutable caching.
+
+Lower-severity findings cover raw JSON parse copy, missing browser hardening policies, and the manifest's generic MIME type. Full evidence and reproduction details are in [verification.md](verification.md).
+
+## Verification commands
 
 ```sh
-npm install
+git fetch origin --prune
+git rev-parse HEAD
+npm ci
+npm audit --audit-level=low
 npm test
 npm run build
 ```
 
-Publish `dist/`; `dist/index.html` is at its root. The build command from the work order is exactly `npm run build`.
+Results: 4 unit tests passed; TypeScript passed; exact Vite production build passed; 9 Playwright tests passed across desktop and 390 px mobile with 1 intentional duplicate-offline skip; audit found 0 vulnerabilities. Fresh Lighthouse mobile scores were local 99/100/100 and live 100/100/100 for performance/accessibility/best practices. Initial JS is 34.84 KB and CSS is 20.31 KB uncompressed.
 
-Staging uses the pilot billing API by default. For release, build with:
+## Re-verification priorities
 
-```sh
-VITE_BILLING_API_BASE=https://api.sociobot.in/api/v1 npm run build
-```
+1. Register/enable the Sociobot product and return URL, deploy with the production billing API base, then complete checkout, return-token, daily verification, offline unlock, and restore tests.
+2. Correct dark paid-strip/footer tokens and rerun axe in light/dark on desktop/mobile and dynamic workshop states.
+3. Fix keyboard radio-group focus, mobile footer hit areas, and deployment cache rules.
+4. Repeat `npm test`, live artifact hash comparison, response-header review, Lighthouse, service-worker update, and offline persisted-project reload.
 
-## Verification
-
-- `npm test`: passes 4 unit tests and 9 browser checks across desktop Chromium and a 390 × 844 viewport; the duplicate mobile offline case is intentionally skipped.
-- Browser checks cover the full two-drawing flow, all three game templates, direct legal routes, axe WCAG 2 A/AA serious/critical findings, console errors, and a real `context.setOffline(true)` reload.
-- Axe: 0 serious or critical violations in both tested viewports.
-- `npm audit`: 0 vulnerabilities.
-- Production budgets: initial JS 34.84 KB uncompressed / 12.54 KB gzip; CSS 20.31 KB / 5.50 KB gzip; mobile hero WebP 27 KB; no downloaded fonts.
-- Lighthouse 12.8.2 mobile, local production preview: **Performance 100, Accessibility 100, Best Practices 100**; FCP 0.9 s, LCP 1.7 s, CLS 0, TBT 50 ms. Lighthouse 12 no longer emits a PWA category; manifest presence and offline behavior are covered directly by browser tests.
-- Manual visual review completed at desktop and 390 px. Generated hero checked for text, logo, seam, anatomy, and unwanted-symbol artifacts.
-
-## Known gaps
-
-- Background removal intentionally targets plain, light paper. Busy or shadowed photos need the built-in eraser; the UI says so before use.
-- The factory still needs to register the billing product/return URL and set the production billing base at release. Until then, the staging buy link can return “product not found.”
-- Automated browser coverage uses the supplied Chromium build; a final physical iPad/Android camera and pen smoke test is advisable before a workshop rollout.
-
-## Suggested next steps
-
-1. Register `doodle-to-game` with Sociobot billing and make a pilot checkout using the documented test card.
-2. Run a 15-minute session on one physical tablet, checking camera orientation and stylus palm behavior.
-3. Build with the production billing environment variable and deploy the resulting `dist/` through factory infrastructure.
+No product code was modified by verification. Only this handoff and `.factory/verification.md` are intended changes.
