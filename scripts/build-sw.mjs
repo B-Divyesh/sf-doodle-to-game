@@ -1,4 +1,5 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 
 const dist = new URL('../dist/', import.meta.url);
@@ -15,7 +16,7 @@ const walk = async (dir, prefix = '') => {
 };
 
 const manifestText = await readFile(new URL('../dist/.vite/manifest.json', import.meta.url), 'utf8');
-const version = Buffer.from(manifestText).toString('base64url').slice(0, 12);
+const version = createHash('sha256').update(manifestText).digest('hex').slice(0, 12);
 const files = await walk(dist.pathname);
 const shell = ['/', ...files.filter((file) => !file.endsWith('.png') || file.includes('icon-192'))];
 const source = `const VERSION = 'doodle-${version}';

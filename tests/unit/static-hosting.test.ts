@@ -24,6 +24,7 @@ describe('static release response policy', () => {
   });
 
   it('keeps navigation documents under their own canonical cache keys', () => {
+    expect(serviceWorkerBuilder).toContain("createHash('sha256').update(manifestText)");
     expect(serviceWorkerBuilder).toContain("url.pathname === '/' ? '/index.html'");
     expect(serviceWorkerBuilder).toContain('cache.put(documentKey, copy)');
     expect(serviceWorkerBuilder).not.toContain("cache.put('/index.html', copy)");
