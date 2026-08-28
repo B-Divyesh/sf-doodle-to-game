@@ -44,6 +44,10 @@ The source repair is commit `64af89d7f9f82c6d2701242e13071bbe154d6a17`.
   (5.73 KB gzip), no downloaded fonts, and 27 KB mobile hero WebP.
 - Lighthouse mobile on `/demo` scored 100 performance and 100 accessibility
   (`/tmp/doodle-lighthouse-final.json`, with full-page screenshots disabled).
+- Deployed static build `dist/` as Azure Static Web Apps deployment
+  `92a76bbc-8b8b-4110-a253-2997317ac797`. Live
+  `https://doodle-to-game.sociobot.in/demo` passed `verify-url.sh` with HTTP
+  200, no console errors, one H1, main landmark, and an 825 ms measured load.
 
 ## Run and deploy
 
