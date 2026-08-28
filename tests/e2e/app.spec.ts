@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+const canvasAlphaPixels = (canvas: HTMLCanvasElement): number => {
+  const data = canvas.getContext('2d', { willReadFrequently: true })?.getImageData(0, 0, canvas.width, canvas.height).data;
+  if (!data) return 0;
+  let count = 0;
+  for (let index = 3; index < data.length; index += 4) if (data[index] > 10) count += 1;
+  return count;
+};
+
 test('makes two drawings and opens a playable game', async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
@@ -54,6 +62,27 @@ test('has no serious accessibility violations', async ({ page }) => {
   expect(violations).toEqual([]);
 });
 
+test('advertises the registered production checkout without a pilot fallback', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Buy Workshop Pack' })).toHaveAttribute(
+    'href',
+    'https://api.sociobot.in/api/v1/products/doodle-to-game/checkout',
+  );
+});
+
+test('an invalid returned license is stripped, stays locked, and gives a recovery action', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/doodle-to-game/verify?*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ valid: false, reason: 'invalid', expires_at: null }),
+  }));
+  await page.goto('/?keep=1&license=not-real#maker');
+  await expect(page).toHaveURL(/\?keep=1#maker$/);
+  await expect(page.getByText('That license is not active. Check the token or buy the Workshop Pack.')).toBeVisible();
+  await expect(page.getByText('Workshop Pack active')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Buy Workshop Pack' })).toBeVisible();
+});
+
 test('has no serious dark-mode accessibility violations', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.goto('/');
@@ -64,6 +93,65 @@ test('has no serious dark-mode accessibility violations', async ({ page }) => {
     return results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''));
   });
   expect(violations).toEqual([]);
+});
+
+test('changing ink preserves every unsaved canvas pixel and undo history', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-next="draw"]').click();
+  const canvas = page.locator('#draw-canvas');
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Drawing canvas was not visible');
+  await page.mouse.move(box.x + 60, box.y + 70);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 210, box.y + 150, { steps: 10 });
+  await page.mouse.up();
+  const before = await canvas.evaluate(canvasAlphaPixels);
+  expect(before).toBeGreaterThan(0);
+  await page.locator('[data-color="#D8422E"]').click();
+  const after = await canvas.evaluate(canvasAlphaPixels);
+  expect(after).toBe(before);
+  await expect(page.locator('[data-action="undo"]')).toBeEnabled();
+  await expect(page.locator('[data-color="#D8422E"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('dynamic success feedback passes dark-mode WCAG contrast', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.goto('/');
+  await page.locator('[data-next="draw"]').click();
+  const canvas = page.locator('#draw-canvas');
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Drawing canvas was not visible');
+  await page.mouse.move(box.x + 60, box.y + 70);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 160, box.y + 130, { steps: 8 });
+  await page.mouse.up();
+  await page.locator('[data-action="save-art"]').click();
+  await expect(page.locator('#app-status')).toContainText('saved on this device');
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+  const serious = await page.evaluate(async () => {
+    const axe = (window as unknown as { axe: { run: (target: string, options: { runOnly: string[] }) => Promise<{ violations: Array<{ impact: string | null; id: string }> }> } }).axe;
+    const result = await axe.run('#app-status', { runOnly: ['wcag2aa'] });
+    return result.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''));
+  });
+  expect(serious).toEqual([]);
+});
+
+test('visible photo and project file controls expose the keyboard focus location', async ({ page }) => {
+  await page.goto('/');
+  const importInput = page.locator('#import-file');
+  await importInput.focus();
+  const importBox = await importInput.boundingBox();
+  expect(importBox?.height).toBeGreaterThanOrEqual(44);
+  await expect(page.locator('.file-button', { has: importInput })).toHaveCSS('outline-style', 'solid');
+
+  await page.locator('[data-next="draw"]').click();
+  const photoInput = page.locator('#photo-file');
+  await photoInput.focus();
+  const photoBox = await photoInput.boundingBox();
+  expect(photoBox?.height).toBeGreaterThanOrEqual(44);
+  await expect(page.locator('.file-button', { has: photoInput })).toHaveCSS('outline-style', 'solid');
 });
 
 test('template radio cards keep roving focus with keyboard selection', async ({ page }) => {
@@ -84,9 +172,17 @@ test('template radio cards keep roving focus with keyboard selection', async ({ 
 test('mobile footer links have 44px touch targets', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'Touch target dimensions apply at the 390px layout.');
   await page.goto('/');
-  const heights = await page.locator('footer a').evaluateAll((links) => links.map((link) => Math.round(link.getBoundingClientRect().height)));
-  expect(heights).toHaveLength(3);
-  expect(heights.every((height) => height >= 44)).toBe(true);
+  const sizes = await page.locator('footer a').evaluateAll((links) => links.map((link) => {
+    const rect = link.getBoundingClientRect();
+    return { width: Math.round(rect.width), height: Math.round(rect.height) };
+  }));
+  expect(sizes).toHaveLength(3);
+  expect(sizes.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
+
+  await page.locator('[data-next="draw"]').click();
+  const brush = await page.locator('#brush-size').boundingBox();
+  expect(brush?.width).toBeGreaterThanOrEqual(44);
+  expect(brush?.height).toBeGreaterThanOrEqual(44);
 });
 
 test('legal pages are reachable without losing app structure', async ({ page }) => {
@@ -125,4 +221,32 @@ test('app shell and saved project remain available offline', async ({ page, cont
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByText(/You’re offline/)).toBeVisible();
   await expect(page.locator('[data-template="collect"]')).toBeVisible();
+});
+
+test('an offline checkout-return token stays locked until server verification', async ({ page, context }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'One offline license regression is sufficient.');
+  await page.goto('/');
+  await page.waitForFunction(async () => Boolean((await navigator.serviceWorker.ready).active));
+  await page.reload();
+  await context.setOffline(true);
+  await page.goto('/?license=not-a-real-license', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('Connect to the internet once to verify this license.')).toBeVisible();
+  await expect(page.getByText('Workshop Pack active')).toHaveCount(0);
+  await page.locator('[data-next="draw"]').click();
+  await expect(page.locator('[data-color]')).toHaveCount(4);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('Workshop Pack active')).toHaveCount(0);
+});
+
+test('offline root navigation restores workshop metadata after a legal page', async ({ page, context }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'One offline metadata regression is sufficient.');
+  await page.goto('/');
+  await page.waitForFunction(async () => Boolean((await navigator.serviceWorker.ready).active));
+  await page.reload();
+  await page.goto('/privacy/');
+  await expect(page).toHaveTitle('Privacy — Doodle to Game');
+  await context.setOffline(true);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveTitle('Doodle to Game — make their drawing playable');
+  await expect(page.getByRole('heading', { name: /Their drawing/ })).toBeVisible();
 });

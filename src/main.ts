@@ -60,9 +60,9 @@ const renderRoute = (): void => {
   const main = document.querySelector<HTMLElement>('#main');
   if (!main) return;
   const path = location.pathname.replace(/\/+$/, '') || '/';
-  if (path === '/privacy') renderLegal(main, 'privacy');
-  else if (path === '/terms') renderLegal(main, 'terms');
-  else renderWorkshop(main);
+  if (path === '/privacy') { document.title = 'Privacy — Doodle to Game'; renderLegal(main, 'privacy'); }
+  else if (path === '/terms') { document.title = 'Terms — Doodle to Game'; renderLegal(main, 'terms'); }
+  else { document.title = 'Doodle to Game — make their drawing playable'; renderWorkshop(main); }
 };
 
 const renderLegal = (main: HTMLElement, page: 'privacy' | 'terms'): void => {
@@ -95,7 +95,7 @@ const renderWorkshop = (main: HTMLElement): void => {
         ${(['choose', 'draw', 'tune', 'play'] as Step[]).map((name, index) => `<li><button type="button" data-step="${name}" ${step === name ? 'aria-current="step"' : ''}><span>${index + 1}</span>${name === 'choose' ? 'Choose' : name === 'draw' ? 'Add art' : name === 'tune' ? 'Tune' : 'Play'}</button></li>`).join('')}
       </ol>
       <div id="work-stage" class="work-stage"></div>
-      <div class="project-tools" aria-labelledby="project-tools-title"><div><h3 id="project-tools-title">Keep your work</h3><p>Move this game to another device with a private project file.</p></div><div class="button-row"><button type="button" class="secondary" data-action="export">Export project</button><label class="button secondary" for="import-file">Import project</label><input id="import-file" class="visually-hidden" type="file" accept="application/json,.json"></div></div>
+      <div class="project-tools" aria-labelledby="project-tools-title"><div><h3 id="project-tools-title">Keep your work</h3><p>Move this game to another device with a private project file.</p></div><div class="button-row"><button type="button" class="secondary" data-action="export">Export project</button><label class="button secondary file-button"><span>Import project</span><input id="import-file" type="file" accept="application/json,.json"></label></div></div>
     </section>
     ${renderPaid()}
     <section class="how"><p class="kicker">The whole trick</p><h2>Paper in. Play out.</h2><ol><li><span>01</span><h3>Make two doodles</h3><p>Use the built-in pad or photograph bold art on plain paper.</p></li><li><span>02</span><h3>Pick one rule</h3><p>Dodge, collect, or solve. Nothing else to configure.</p></li><li><span>03</span><h3>Pass the controls</h3><p>Use arrows, WASD, or the roomy touch pad.</p></li></ol></section>`;
@@ -104,7 +104,7 @@ const renderWorkshop = (main: HTMLElement): void => {
 
 const renderPaid = (): string => paid ? `
   <section class="paid-strip paid-active" aria-labelledby="pack-title"><div><p class="kicker">Workshop Pack active</p><h2 id="pack-title">Bonus inks are on the table.</h2><p>Your license is stored on this device. Paid extras keep working offline after verification.</p></div><div class="pack-mark" aria-hidden="true"><i></i><i></i><i></i></div></section>` : `
-  <section class="paid-strip" aria-labelledby="pack-title"><div><p class="kicker">Optional extra</p><h2 id="pack-title">Workshop Pack · US $9 once</h2><p>Unlock four bonus ink colours and a geometric finish celebration. The complete three-game maker, saving, and exports stay free.</p><p class="legal-small">Hosted checkout by Sociobot/Dodo, the merchant of record. Refunds are handled there.</p></div><div class="purchase"><a class="primary-link" href="${checkoutUrl}">Buy Workshop Pack</a><details><summary>Have a license?</summary><form id="license-form"><label for="license-token">Paste the token from your receipt</label><div class="paste-row"><input id="license-token" autocomplete="off" spellcheck="false"><button type="submit" class="secondary">Restore</button></div></form></details></div></section>`;
+  <section class="paid-strip" aria-labelledby="pack-title"><div><p class="kicker">Optional extra</p><h2 id="pack-title">Workshop Pack · US $9 once</h2><p>Unlock four bonus ink colours and a geometric finish celebration. The complete three-game maker, saving, and exports stay free.</p><p class="legal-small">Hosted checkout by Sociobot/Dodo, the merchant of record. Refunds are handled there.</p></div><div class="purchase"><a class="primary-link" href="${checkoutUrl}">Buy Workshop Pack</a><details><summary>Have a license?</summary><form id="license-form"><label for="license-token">Paste the token from your receipt</label><div class="paste-row"><input id="license-token" autocomplete="off" spellcheck="false"><button type="submit" class="secondary" aria-label="Restore Workshop Pack license">Restore</button></div></form></details></div></section>`;
 
 const renderStage = (): void => {
   game?.dispose(); game = undefined;
@@ -132,7 +132,7 @@ const drawMarkup = (): string => {
       <div class="drawing-tools"><fieldset><legend>Ink colour</legend><div class="swatches">${colors.map((color) => `<button type="button" class="swatch" data-color="${color}" aria-label="Use ${color} ink" aria-pressed="${editorColor === color}" style="--swatch:${color}"></button>`).join('')}</div>${!paid ? '<small>4 bonus inks in Workshop Pack</small>' : ''}</fieldset>
       <label for="brush-size">Brush size <output id="brush-output">${editorSize}px</output></label><input id="brush-size" type="range" min="4" max="32" value="${editorSize}">
       <div class="tool-grid"><button type="button" class="secondary" data-action="eraser" aria-pressed="${erasing}">Eraser</button><button type="button" class="secondary" data-action="undo" ${editorHistory.length ? '' : 'disabled'}>Undo</button><button type="button" class="secondary" data-action="clear">Clear</button></div>
-      <div class="photo-tool"><label class="button secondary" for="photo-file">Use a photo</label><input id="photo-file" class="visually-hidden" type="file" accept="image/*" capture="environment"><button type="button" class="secondary" data-action="remove-bg">Remove paper</button><small>Photos never leave this device. Background cleanup works best with high-contrast art on plain paper.</small></div></div></div>
+      <div class="photo-tool"><label class="button secondary file-button"><span>Use a photo</span><input id="photo-file" type="file" accept="image/*" capture="environment"></label><button type="button" class="secondary" data-action="remove-bg">Remove paper</button><small>Photos never leave this device. Background cleanup works best with high-contrast art on plain paper.</small></div></div></div>
     <div class="stage-actions"><button type="button" class="text-button" data-back="choose">← Change game</button><button type="button" class="primary" data-action="save-art">Save this doodle</button><button type="button" class="primary" data-next="tune">Tune the rules <span aria-hidden="true">→</span></button></div>`;
 };
 
@@ -253,7 +253,14 @@ const handleClick = async (event: MouseEvent): Promise<void> => {
   const slot = target.closest<HTMLButtonElement>('[data-slot]');
   if (slot) { if (dirty) await saveEditor(); activeSlot = slot.dataset.slot as AssetSlot; editorHistory = []; renderStage(); return; }
   const color = target.closest<HTMLButtonElement>('[data-color]');
-  if (color) { editorColor = color.dataset.color ?? '#172033'; erasing = false; renderStage(); return; }
+  if (color) {
+    editorColor = color.dataset.color ?? '#172033'; erasing = false;
+    document.querySelectorAll<HTMLButtonElement>('[data-color]').forEach((swatch) => swatch.setAttribute('aria-pressed', String(swatch === color)));
+    const eraser = document.querySelector<HTMLButtonElement>('[data-action="eraser"]');
+    eraser?.setAttribute('aria-pressed', 'false');
+    if (eraser) eraser.textContent = 'Eraser';
+    return;
+  }
   const action = target.closest<HTMLElement>('[data-action]')?.dataset.action;
   if (!action) return;
   if (action === 'save-art') { await saveEditor(); renderStage(); }
@@ -310,7 +317,7 @@ const registerServiceWorker = (): void => {
 const updateConnection = (): void => { const note = document.querySelector<HTMLElement>('#connection-note'); if (note) note.hidden = navigator.onLine; };
 
 const init = async (): Promise<void> => {
-  captureReturnedLicense(); paid = hasOptimisticUnlock(); shell(); renderRoute(); updateConnection();
+  const returnedLicense = captureReturnedLicense(); paid = hasOptimisticUnlock(); shell(); renderRoute(); updateConnection();
   app.addEventListener('click', (event) => { void handleClick(event); });
   app.addEventListener('change', (event) => { void handleChange(event); });
   app.addEventListener('submit', (event) => { void handleSubmit(event as SubmitEvent); });
@@ -335,7 +342,9 @@ const init = async (): Promise<void> => {
   try { project = await loadProject(); } catch { storageAvailable = false; }
   renderRoute();
   const verdict = await verifyLicense();
+  if (returnedLicense && !verdict && !navigator.onLine) setStatus('Connect to the internet once to verify this license. Your free game is still ready.', 'plain');
   if (verdict && verdict.valid !== paid) { paid = verdict.valid; renderRoute(); if (!verdict.valid) setStatus('This license is no longer active. Free games and your artwork are unchanged.', 'error'); }
+  else if (returnedLicense && verdict && !verdict.valid) setStatus('That license is not active. Check the token or buy the Workshop Pack.', 'error');
 };
 
 void init();

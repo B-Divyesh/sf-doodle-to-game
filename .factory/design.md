@@ -21,6 +21,7 @@ Light mode is the primary workshop treatment; dark mode is a low-light “bluepr
 | `tomato-ink` | `#FFFFFF` | `#17111A` | content on primary action |
 | `cobalt` | `#1859C9` | `#75A7FF` | focus / collectible / links |
 | `leaf` | `#237A4B` | `#62D497` | success |
+| `success-ink` | `#FFFFFF` | `#111B2A` | readable text on success feedback |
 | `gold` | `#9A6100` | `#FFC35A` | warning |
 | `danger` | `#B4232F` | `#FF8791` | destructive/error |
 

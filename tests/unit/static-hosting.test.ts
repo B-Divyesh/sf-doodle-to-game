@@ -7,6 +7,7 @@ const config = JSON.parse(readFileSync(new URL('../../public/staticwebapp.config
   mimeTypes: Record<string, string>;
   routes: Array<{ route: string; headers: Record<string, string> }>;
 };
+const serviceWorkerBuilder = readFileSync(new URL('../../scripts/build-sw.mjs', import.meta.url), 'utf8');
 
 describe('static release response policy', () => {
   it('keeps documents and the service worker revalidating while immutable assets are long-lived', () => {
@@ -20,5 +21,11 @@ describe('static release response policy', () => {
     expect(config.globalHeaders['Content-Security-Policy']).toContain("frame-ancestors 'none'");
     expect(config.globalHeaders['Permissions-Policy']).toContain('geolocation=()');
     expect(config.globalHeaders['X-Frame-Options']).toBe('DENY');
+  });
+
+  it('keeps navigation documents under their own canonical cache keys', () => {
+    expect(serviceWorkerBuilder).toContain("url.pathname === '/' ? '/index.html'");
+    expect(serviceWorkerBuilder).toContain('cache.put(documentKey, copy)');
+    expect(serviceWorkerBuilder).not.toContain("cache.put('/index.html', copy)");
   });
 });
